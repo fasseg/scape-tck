@@ -44,7 +44,7 @@ public class ConnectorAPIMockTest {
 
 	@Test
 	public void testInvalidIE() throws Exception {
-		HttpResponse resp = HttpUtil.getInstance().getEntity("non-existant");
+		HttpResponse resp = ConnectorAPIUtil.getInstance().getEntity("non-existant");
 		assertTrue(resp.getStatusLine().getStatusCode() == 404);
 	}
 		
@@ -58,9 +58,9 @@ public class ConnectorAPIMockTest {
 						.language("en")
 						.build())
 				.build();
-		HttpResponse resp = HttpUtil.getInstance().postEntity(ie);
+		HttpResponse resp = ConnectorAPIUtil.getInstance().postEntity(ie);
 		assertTrue(resp.getStatusLine().getStatusCode() == 201);
-		resp = HttpUtil.getInstance().getEntity(ie.getIdentifier().getValue());
+		resp = ConnectorAPIUtil.getInstance().getEntity(ie.getIdentifier().getValue());
 		IOUtils.copy(resp.getEntity().getContent(),System.out);
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
 	}
