@@ -8,10 +8,14 @@ import org.simpleframework.transport.connect.SocketConnection;
 public class ConnectorAPIMock implements Runnable{
 
     private final int port = 8783;
-    private final EntityContainer container=new EntityContainer();
-    
+    private final String path;
     private SocketConnection conn;
     private volatile boolean running=false;
+    private EntityContainer container;
+    
+    public ConnectorAPIMock(){
+    	this.path = System.getProperty("java.io.tmpdir") + "/scape-tck-" + System.getProperty("user.name");
+    }
     
     public int getPort(){
         return this.port;
@@ -20,7 +24,6 @@ public class ConnectorAPIMock implements Runnable{
     public void run(){
         this.running=true;
         try {
-            this.conn=new SocketConnection(this.container);
             this.startServer();
         } catch (IOException e) {
             e.printStackTrace();
@@ -36,12 +39,16 @@ public class ConnectorAPIMock implements Runnable{
     }
     
     private void startServer() throws IOException{
-        EntityContainer container=new EntityContainer();
-        this.conn=new SocketConnection(container);
+    	this.container=new EntityContainer(this.path);
+        this.conn=new SocketConnection(this.container);
         this.conn.connect(new InetSocketAddress(this.port));
     }
     
     public synchronized boolean isRunning() {
         return this.running;
+    }
+    
+    public void purgeStorage() throws Exception{
+    	this.container.purgeStorage();
     }
 }
