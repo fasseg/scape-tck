@@ -29,7 +29,7 @@ import eu.scapeproject.model.mets.MetsFactory;
 
 public class PosixStorage {
     
-    private final File foxmlDirectory;
+    private final File xmlDirectory;
     private final File datastreamDirectory;
     
     public PosixStorage(String directory) {
@@ -41,12 +41,12 @@ public class PosixStorage {
             throw new RuntimeException("Unable to access directory " + parent.getAbsolutePath());
         }
         
-        foxmlDirectory = new File(parent,"foxml");
-        if (!foxmlDirectory.exists()){
-            foxmlDirectory.mkdir();
+        xmlDirectory = new File(parent,"foxml");
+        if (!xmlDirectory.exists()){
+            xmlDirectory.mkdir();
         }
-        if (!foxmlDirectory.canExecute() || !foxmlDirectory.canRead() || !foxmlDirectory.canWrite()){
-            throw new RuntimeException("Unable to access directory " + foxmlDirectory.getAbsolutePath());
+        if (!xmlDirectory.canExecute() || !xmlDirectory.canRead() || !xmlDirectory.canWrite()){
+            throw new RuntimeException("Unable to access directory " + xmlDirectory.getAbsolutePath());
         }
 
         datastreamDirectory = new File(parent,"datastreams");
@@ -59,12 +59,12 @@ public class PosixStorage {
     }
     
     public void purge() throws Exception{
-    	FileUtils.deleteDirectory(foxmlDirectory);
+    	FileUtils.deleteDirectory(xmlDirectory);
     	FileUtils.deleteDirectory(datastreamDirectory);
     }
     
-    public void saveFOXML(byte[] blob,String name,boolean overwrite) throws Exception{
-        File f=new File(foxmlDirectory,name + ".xml");
+    public void saveXML(byte[] blob,String name,boolean overwrite) throws Exception{
+        File f=new File(xmlDirectory,name + ".xml");
         if (f.exists() && !overwrite){
             throw new IOException("File " + f.getAbsolutePath() + " exists already!");
         }
@@ -77,8 +77,8 @@ public class PosixStorage {
         }
     }
     
-    public byte[] getFOXML(String id) throws Exception{
-        final File f=new File(foxmlDirectory,id + ".xml");
+    public byte[] getXML(String id) throws Exception{
+        final File f=new File(xmlDirectory,id + ".xml");
         if (!f.exists()){
             throw new FileNotFoundException("Unable to open file " + f.getAbsolutePath());
         }

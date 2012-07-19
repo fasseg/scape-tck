@@ -43,6 +43,12 @@ public class ConnectorAPIMockTest {
 	}
 
 	@Test
+	public void testInvalidIE() throws Exception {
+		HttpResponse resp = HttpUtil.getInstance().getEntity("non-existant");
+		assertTrue(resp.getStatusLine().getStatusCode() == 404);
+	}
+		
+	@Test
 	public void testIngestEmptyIntelletualEntity() throws Exception {
 		IntellectualEntity ie = new IntellectualEntity.Builder()
 				.identifier(new UUIDIdentifier())
