@@ -11,7 +11,7 @@ public class ConnectorAPIMock implements Runnable{
     private final String path;
     private SocketConnection conn;
     private volatile boolean running=false;
-    private EntityContainer container;
+    private MockContainer container;
     
     public ConnectorAPIMock(){
     	this.path = System.getProperty("java.io.tmpdir") + "/scape-tck-" + System.getProperty("user.name");
@@ -39,7 +39,7 @@ public class ConnectorAPIMock implements Runnable{
     }
     
     private void startServer() throws IOException{
-    	this.container=new EntityContainer(this.path);
+    	this.container=new MockContainer(this.path);
         this.conn=new SocketConnection(this.container);
         this.conn.connect(new InetSocketAddress(this.port));
     }
