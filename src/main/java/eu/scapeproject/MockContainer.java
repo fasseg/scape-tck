@@ -1,5 +1,6 @@
 package eu.scapeproject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
@@ -10,6 +11,11 @@ import org.simpleframework.http.Response;
 import org.simpleframework.http.core.Container;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import eu.scapeproject.model.IntellectualEntity;
+import eu.scapeproject.model.LifecycleState;
+import eu.scapeproject.model.LifecycleState.State;
+import eu.scapeproject.model.mets.MetsFactory;
 
 public class MockContainer implements Container {
 	private static final Logger LOG = LoggerFactory.getLogger(MockContainer.class);
@@ -77,12 +83,16 @@ public class MockContainer implements Container {
 	}
 
 	private void handleIngest(Request req, Response resp) throws Exception {
-		String xml = req.getContent();
-		int objIdPos = xml.indexOf("OBJID=\"") + 7;
-		int nextQuotePos = xml.indexOf("\"", objIdPos);
-		String id = xml.substring(objIdPos, nextQuotePos);
-		storage.saveXML(xml.getBytes(), id, false);
-		LOG.debug("wrote new file " + id + " with " + xml.length() + " bytes");
+		IntellectualEntity.Builder entityBuilder=new IntellectualEntity.Builder(MetsFactory.getInstance().deserialize(req.getInputStream()));
+		entityBuilder.lifecycleState(new LifecycleState("", State.INGESTED));
+		IntellectualEntity entity=entityBuilder.build();
+		
+		LOG.debug("writing entity " + entity.getIdentifier().getValue());
+		ByteArrayOutputStream bos=new ByteArrayOutputStream();
+		MetsFactory.getInstance().serialize(entity, bos);
+		System.out.println(bos.toString());
+		storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), false);
+		LOG.debug("wrote new file " + entity.getIdentifier().getValue());
 		resp.setCode(201);
 		resp.close();
 	}

@@ -21,6 +21,7 @@ import org.junit.Test;
 
 import eu.scapeproject.model.Agent;
 import eu.scapeproject.model.IntellectualEntity;
+import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.UUIDIdentifier;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.metadata.textmd.TextMDMetadata.Encoding.EncodingAgent.Role;
@@ -88,9 +89,10 @@ public class ConnectorAPIMockTest {
 
 		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
 		resp = CLIENT.execute(get);
-		IOUtils.copy(resp.getEntity().getContent(), System.out);
+		IntellectualEntity fetched=MetsFactory.getInstance().deserialize(resp.getEntity().getContent());
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
 		get.releaseConnection();
+		assertTrue(fetched.getLifecycleState().getState().equals(State.INGESTED));
 	}
 
 }
