@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
-import eu.scapeproject.model.mets.MetsFactory;
+import eu.scapeproject.model.mets.MetsMarshaller;
 
 public class MockContainer implements Container {
 	private static final Logger LOG = LoggerFactory.getLogger(MockContainer.class);
@@ -83,14 +83,13 @@ public class MockContainer implements Container {
 	}
 
 	private void handleIngest(Request req, Response resp) throws Exception {
-		IntellectualEntity.Builder entityBuilder=new IntellectualEntity.Builder(MetsFactory.getInstance().deserialize(req.getInputStream()));
+		IntellectualEntity.Builder entityBuilder=new IntellectualEntity.Builder(MetsMarshaller.getInstance().deserialize(IntellectualEntity.class,req.getInputStream()));
 		entityBuilder.lifecycleState(new LifecycleState("", State.INGESTED));
 		IntellectualEntity entity=entityBuilder.build();
 		
 		LOG.debug("writing entity " + entity.getIdentifier().getValue());
 		ByteArrayOutputStream bos=new ByteArrayOutputStream();
-		MetsFactory.getInstance().serialize(entity, bos);
-		System.out.println(bos.toString());
+		MetsMarshaller.getInstance().serialize(entity, bos);
 		storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), false);
 		LOG.debug("wrote new file " + entity.getIdentifier().getValue());
 		resp.setCode(201);

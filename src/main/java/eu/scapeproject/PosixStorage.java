@@ -25,7 +25,7 @@ import eu.scapeproject.model.metadata.premis.PremisProvenanceMetadata;
 import eu.scapeproject.model.metadata.premis.PremisRightsMetadata;
 import eu.scapeproject.model.metadata.textmd.TextMDMetadata;
 import eu.scapeproject.model.metadata.videomd.VideoMDMetadata;
-import eu.scapeproject.model.mets.MetsFactory;
+import eu.scapeproject.model.mets.MetsMarshaller;
 
 public class PosixStorage {
     

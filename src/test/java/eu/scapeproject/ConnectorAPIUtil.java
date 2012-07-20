@@ -7,7 +7,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ByteArrayEntity;
 
 import eu.scapeproject.model.IntellectualEntity;
-import eu.scapeproject.model.mets.MetsFactory;
+import eu.scapeproject.model.mets.MetsMarshaller;
 
 public class ConnectorAPIUtil {
 	private static final String MOCK_URL="http://localhost:8783";
@@ -27,7 +27,7 @@ public class ConnectorAPIUtil {
 
 	public HttpPost createPostEntity(IntellectualEntity ie) throws Exception{
         HttpPost post=new HttpPost(MOCK_URL + ENTITY_PATH);
-        MetsFactory factory=MetsFactory.getInstance();
+        MetsMarshaller factory=MetsMarshaller.getInstance();
         ByteArrayOutputStream bos=new ByteArrayOutputStream();
         factory.serialize(ie, bos);
         post.setEntity(new ByteArrayEntity(bos.toByteArray()));
