@@ -47,7 +47,7 @@ public class ModelUtil {
 
 	public static final Representation createImageRepresentation(URI uri) {
 		File file = new File.Builder()
-				.uri(Arrays.asList(uri))
+				.uri(uri)
 				.technical(createNisoMetadata())
 				.bitStreams(new ArrayList<BitStream>()) 
 				.build();
