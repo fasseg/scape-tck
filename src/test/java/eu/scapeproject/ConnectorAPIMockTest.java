@@ -3,28 +3,24 @@ package eu.scapeproject;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.UUID;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import eu.scapeproject.model.Agent;
+import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.LifecycleState.State;
-import eu.scapeproject.model.UUIDIdentifier;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
-import eu.scapeproject.model.metadata.textmd.TextMDMetadata.Encoding.EncodingAgent.Role;
 import eu.scapeproject.model.mets.MetsMarshaller;
 
 public class ConnectorAPIMockTest {
@@ -60,7 +56,7 @@ public class ConnectorAPIMockTest {
 	@Test
 	public void testIngestEmptyIntellectualEntity() throws Exception {
 		IntellectualEntity ie = new IntellectualEntity.Builder()
-				.identifier(new UUIDIdentifier())
+				.identifier(new Identifier(UUID.randomUUID().toString()))
 				.descriptive(new DCMetadata.Builder()
 						.title("A test entity")
 						.date(new Date())
@@ -90,8 +86,8 @@ public class ConnectorAPIMockTest {
 
 		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
 		resp = CLIENT.execute(get);
-//		IOUtils.copy(resp.getEntity().getContent(), System.out);
-		IntellectualEntity fetched=MetsMarshaller.getInstance().deserialize(IntellectualEntity.class,resp.getEntity().getContent());
+		// IOUtils.copy(resp.getEntity().getContent(), System.out);
+		IntellectualEntity fetched = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
 		get.releaseConnection();
 		assertTrue(fetched.getLifecycleState().getState().equals(State.INGESTED));

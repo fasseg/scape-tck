@@ -2,17 +2,16 @@ package eu.scapeproject;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import eu.scapeproject.model.Agent;
 import eu.scapeproject.model.BitStream;
 import eu.scapeproject.model.File;
+import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.Representation;
-import eu.scapeproject.model.UUIDIdentifier;
-import eu.scapeproject.model.metadata.TechnicalMetadata;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.metadata.mix.NisoMixMetadata;
 
@@ -28,7 +27,7 @@ public class ModelUtil {
 
 	public static final IntellectualEntity createEntity(List<Representation> representations) {
 		IntellectualEntity.Builder ieBuilder = new IntellectualEntity.Builder()
-				.identifier(new UUIDIdentifier())
+				.identifier(new Identifier(UUID.randomUUID().toString()))
 				.descriptive(createDCMetadata());
 		if (representations != null && representations.size() != 0) {
 			ieBuilder.representations(representations);
