@@ -5,6 +5,11 @@ import java.net.InetSocketAddress;
 
 import org.simpleframework.transport.connect.SocketConnection;
 
+/**
+ * Mock class for API testing
+ * @author Frank Asseg
+ *
+ */
 public class ConnectorAPIMock implements Runnable{
 
     private final int port = 8783;
