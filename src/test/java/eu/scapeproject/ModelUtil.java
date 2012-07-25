@@ -46,11 +46,13 @@ public class ModelUtil {
 
 	public static final Representation createImageRepresentation(URI uri) {
 		File file = new File.Builder()
+		        .identifier(new Identifier("image-file-" + new Date().getTime()))
 				.uri(uri)
 				.technical(createNisoMetadata())
 				.bitStreams(new ArrayList<BitStream>()) 
 				.build();
 		return new Representation.Builder()
+		    .identifier(new Identifier("image-representation-" + new Date().getTime()))
 			.file(file)
 			.technical(createNisoMetadata())
 			.build();

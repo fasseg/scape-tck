@@ -27,9 +27,9 @@ public class ConnectorAPIMock implements Runnable{
     }
     
     public void run(){
-        this.running=true;
         try {
             this.startServer();
+            this.running=true;
         } catch (IOException e) {
             e.printStackTrace();
         }

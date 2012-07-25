@@ -27,9 +27,8 @@ public class ConnectorAPIUtil {
 
 	public HttpPost createPostEntity(IntellectualEntity ie) throws Exception{
         HttpPost post=new HttpPost(MOCK_URL + ENTITY_PATH);
-        MetsMarshaller factory=MetsMarshaller.getInstance();
         ByteArrayOutputStream bos=new ByteArrayOutputStream();
-        factory.serialize(ie, bos);
+        MetsMarshaller.getInstance().serialize(ie, bos);
         post.setEntity(new ByteArrayEntity(bos.toByteArray()));
         return post;
     }

@@ -2,14 +2,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.congrace</groupId>
 	<artifactId>scape-tck</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>scape-tck</name>
 	<description>TCK for applications using the various APIs of the SCAPE platform</description>
 	<dependencies>
 		<dependency>
 			<groupId>eu.scapeproject.model</groupId>
 			<artifactId>scape-dto</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>0.0.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.simpleframework</groupId>
