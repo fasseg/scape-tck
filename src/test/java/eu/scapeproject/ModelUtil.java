@@ -37,6 +37,7 @@ public class ModelUtil {
 
 	public static final DCMetadata createDCMetadata() {
 		return new DCMetadata.Builder()
+				.identifier(new Identifier(UUID.randomUUID().toString()))
 				.creator(createTestCreator())
 				.title("A test entity")
 				.date(new Date())

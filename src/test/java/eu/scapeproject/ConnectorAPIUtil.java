@@ -12,6 +12,7 @@ import eu.scapeproject.model.mets.MetsMarshaller;
 public class ConnectorAPIUtil {
 	private static final String MOCK_URL="http://localhost:8783";
 	private static final String ENTITY_PATH="/entity";
+	private static final String METADATA_PATH="/metadata";
 	private static ConnectorAPIUtil INSTANCE;
 
 	private ConnectorAPIUtil(){
@@ -35,6 +36,10 @@ public class ConnectorAPIUtil {
 
 	public HttpGet createGetEntity(String id) throws Exception{
 		return new HttpGet(MOCK_URL + ENTITY_PATH + "/" + id);
+	}
+	
+	public HttpGet createGetMetadata(String id) throws Exception{
+		return new HttpGet(MOCK_URL + METADATA_PATH + "/" + id);
 	}
 
 }

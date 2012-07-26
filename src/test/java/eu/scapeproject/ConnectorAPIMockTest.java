@@ -1,8 +1,9 @@
 package eu.scapeproject;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Date;
@@ -66,8 +67,8 @@ public class ConnectorAPIMockTest {
 				.build();
 		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie);
 		HttpResponse resp = CLIENT.execute(post);
-		assertTrue(resp.getStatusLine().getStatusCode() == 201);
 		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
 		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(ie.getIdentifier().getValue());
 		resp = CLIENT.execute(get);
@@ -79,19 +80,41 @@ public class ConnectorAPIMockTest {
 	public void testIngestImage() throws Exception {
 		IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
 				.create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
-//		MetsMarshaller.getInstance().serialize(entity, System.out);
 		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
 		HttpResponse resp = CLIENT.execute(post);
-		assertTrue(resp.getStatusLine().getStatusCode() == 201);
 		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
 		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
 		resp = CLIENT.execute(get);
-//		IOUtils.copy(resp.getEntity().getContent(), System.out);
 		IntellectualEntity fetched = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
 		get.releaseConnection();
 		assertTrue(fetched.getLifecycleState().getState().equals(State.INGESTED));
 	}
 
+	@Test
+	public void testRetrieveMetadataRecord() throws Exception {
+		IntellectualEntity entity=ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI.create("http://example.com/void"))));
+		// post an entity without identifiers
+		HttpPost post=ConnectorAPIUtil.getInstance().createPostEntity(entity);
+		CLIENT.execute(post);
+		post.releaseConnection();
+		
+		// fetch the entity to learn the generated idenifiers
+		HttpGet get=ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
+		HttpResponse resp=CLIENT.execute(get);
+		IntellectualEntity fetched=MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
+		get.releaseConnection();
+		
+		// and try to fetch and validate the fecthed entity's metadata
+		get=ConnectorAPIUtil.getInstance().createGetMetadata(fetched.getDescriptive().getId());
+		resp=CLIENT.execute(get);
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+		ByteArrayOutputStream bos=new ByteArrayOutputStream();
+		IOUtils.copy(resp.getEntity().getContent(),bos);
+		get.releaseConnection();
+		DCMetadata dc=MetsMarshaller.getInstance().deserialize(DCMetadata.class, new ByteArrayInputStream(bos.toByteArray()));
+		assertEquals(entity.getDescriptive(),dc);
+	}
 }
