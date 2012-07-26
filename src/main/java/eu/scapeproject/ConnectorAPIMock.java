@@ -2,58 +2,66 @@ package eu.scapeproject;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.text.DecimalFormat;
 
 import org.simpleframework.transport.connect.SocketConnection;
 
 /**
  * Mock class for API testing
+ * 
  * @author Frank Asseg
- *
+ * 
  */
-public class ConnectorAPIMock implements Runnable{
+public class ConnectorAPIMock implements Runnable {
 
-    private final int port = 8783;
-    private final String path;
-    private SocketConnection conn;
-    private volatile boolean running=false;
-    private MockContainer container;
-    
-    public ConnectorAPIMock(){
-    	this.path = System.getProperty("java.io.tmpdir") + "/scape-tck-" + System.getProperty("user.name");
-    }
-    
-    public int getPort(){
-        return this.port;
-    }
-    
-    public void run(){
-        try {
-            this.startServer();
-            this.running=true;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    
-    public void stop() throws IOException{
-        if (this.conn == null){
-            throw new IOException("Connection is null");
-        }
-        this.conn.close();
-        this.running=false;
-    }
-    
-    private void startServer() throws IOException{
-    	this.container=new MockContainer(this.path,this.port);
-        this.conn=new SocketConnection(this.container);
-        this.conn.connect(new InetSocketAddress(this.port));
-    }
-    
-    public synchronized boolean isRunning() {
-        return this.running;
-    }
-    
-    public void purgeStorage() throws Exception{
-    	this.container.purgeStorage();
-    }
+	private final int port = 8783;
+	private final String path;
+	private SocketConnection conn;
+	private volatile boolean running = false;
+	private MockContainer container;
+	private long startupMem;
+
+	public ConnectorAPIMock() {
+		this.path = System.getProperty("java.io.tmpdir") + "/scape-tck-" + System.getProperty("user.name");
+	}
+
+	public int getPort() {
+		return this.port;
+	}
+
+	public void run() {
+		try {
+			this.startServer();
+			this.running = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void stop() throws IOException {
+		DecimalFormat fmt = new DecimalFormat("#.##");
+		if (this.conn == null) {
+			throw new IOException("Connection is null");
+		}
+		this.conn.close();
+		this.running = false;
+		System.out.println(":: total used:\t" + fmt.format((double) Runtime.getRuntime().totalMemory() / (1024d * 1024d)) + " MB ");
+		System.out.println(":: after start: " + fmt.format(startupMem / (1024d * 1024d)) + " MB");
+		System.out.println(":: growth:\t" + fmt.format((Runtime.getRuntime().totalMemory() - startupMem)/(1024d*1024d)) + " MB");
+	}
+
+	private void startServer() throws IOException {
+		this.container = new MockContainer(this.path, this.port);
+		this.conn = new SocketConnection(this.container);
+		this.startupMem = Runtime.getRuntime().totalMemory();
+		this.conn.connect(new InetSocketAddress(this.port));
+	}
+
+	public synchronized boolean isRunning() {
+		return this.running;
+	}
+
+	public void purgeStorage() throws Exception {
+		this.container.purgeStorage();
+	}
 }

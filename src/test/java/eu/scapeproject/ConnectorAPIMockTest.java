@@ -57,7 +57,7 @@ public class ConnectorAPIMockTest {
 	}
 
 	@Test
-	public void testIngestEmptyIntellectualEntity() throws Exception {
+	public void testIngestMinimalIntellectualEntity() throws Exception {
 		IntellectualEntity ie = new IntellectualEntity.Builder()
 				.identifier(new Identifier(UUID.randomUUID().toString()))
 				.descriptive(new DCMetadata.Builder()
