@@ -34,10 +34,14 @@ public class ConnectorAPIUtil {
         return post;
     }
 
+	public HttpGet createGetEntity(String id,boolean references) throws Exception{
+		return new HttpGet(MOCK_URL + ENTITY_PATH + "/" + id + "?useReferences=" + references);
+	}
+	
 	public HttpGet createGetEntity(String id) throws Exception{
 		return new HttpGet(MOCK_URL + ENTITY_PATH + "/" + id);
 	}
-	
+
 	public HttpGet createGetMetadata(String id) throws Exception{
 		return new HttpGet(MOCK_URL + METADATA_PATH + "/" + id);
 	}

@@ -44,7 +44,7 @@ public class ConnectorAPIMock implements Runnable{
     }
     
     private void startServer() throws IOException{
-    	this.container=new MockContainer(this.path);
+    	this.container=new MockContainer(this.path,this.port);
         this.conn=new SocketConnection(this.container);
         this.conn.connect(new InetSocketAddress(this.port));
     }

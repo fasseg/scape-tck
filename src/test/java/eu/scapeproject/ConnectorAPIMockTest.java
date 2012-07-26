@@ -19,6 +19,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import eu.scapeproject.dto.mets.MetsDocument;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.LifecycleState.State;
@@ -73,6 +74,31 @@ public class ConnectorAPIMockTest {
 		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(ie.getIdentifier().getValue());
 		resp = CLIENT.execute(get);
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+		get.releaseConnection();
+	}
+
+	@Test
+	public void testRetrieveIntellectualEntityWithRefs() throws Exception {
+		IntellectualEntity ie = new IntellectualEntity.Builder()
+				.identifier(new Identifier(UUID.randomUUID().toString()))
+				.descriptive(new DCMetadata.Builder()
+						.title("A test entity")
+						.date(new Date())
+						.language("en")
+						.build())
+				.build();
+		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie);
+		HttpResponse resp = CLIENT.execute(post);
+		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(ie.getIdentifier().getValue(),true);
+		resp = CLIENT.execute(get);
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+		MetsDocument doc=(MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+		assertTrue(doc.getDmdSec() != null);
+		assertTrue(doc.getDmdSec().getMetadataReference() != null);
+		assertTrue(doc.getDmdSec().getMetadataWrapper() == null);
 		get.releaseConnection();
 	}
 

@@ -16,7 +16,9 @@ import org.simpleframework.http.core.Container;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eu.scapeproject.dto.mets.MetsDMDSec;
 import eu.scapeproject.dto.mets.MetsDocument;
+import eu.scapeproject.dto.mets.MetsMDRef;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.LifecycleState;
@@ -29,9 +31,11 @@ public class MockContainer implements Container {
 	private static final Logger LOG = LoggerFactory.getLogger(MockContainer.class);
 	private final PosixStorage storage;
 	private final Map<String, String> metadataIdMap = new HashMap<String, String>();
+	private final int port;
 
-	public MockContainer(String path) {
+	public MockContainer(String path,int port) {
 		this.storage = new PosixStorage(path);
+		this.port = port;
 	}
 
 	public void handle(Request req, Response resp) {
@@ -68,7 +72,7 @@ public class MockContainer implements Container {
 		LOG.info("-- HTTP/1.1 GET " + contextPath);
 		try {
 			if (contextPath.startsWith("/entity/")) {
-				handleRetrieve(req, resp);
+				handleRetrieveEntity(req, resp);
 			} else if (contextPath.startsWith("/metadata/")) {
 				handleRetrieveMetadata(req, resp);
 			} else {
@@ -96,11 +100,25 @@ public class MockContainer implements Container {
 		}
 	}
 
-	private void handleRetrieve(Request req, Response resp) throws Exception {
+	private void handleRetrieveEntity(Request req, Response resp) throws Exception {
 		String id = req.getPath().getPath().substring(8);
 		try {
 			byte[] blob = storage.getXML(id);
-			IOUtils.write(blob, resp.getOutputStream());
+			if (req.getParameter("useReferences") != null && req.getParameter("useReferences").equalsIgnoreCase("true")){
+				MetsDocument doc=(MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(blob));
+				MetsMDRef.Builder ref=new MetsMDRef.Builder()
+					.id(UUID.randomUUID().toString())
+					.href("http://localhost:" + port + "/metadata/" + doc.getDmdSec().getId());
+				MetsDMDSec dmdSec=new MetsDMDSec.Builder(doc.getDmdSec().getId())
+					.mdRef(ref.build())
+					.metadataWrapper(null)
+					.build();
+				MetsDocument.Builder docBuilder=new MetsDocument.Builder(doc)
+					.dmdSec(dmdSec);
+				MetsMarshaller.getInstance().getJaxbMarshaller().marshal(docBuilder.build(), resp.getOutputStream());
+			} else{
+				IOUtils.write(blob, resp.getOutputStream());
+			}
 			resp.setCode(200);
 			resp.close();
 		} catch (FileNotFoundException e) {
