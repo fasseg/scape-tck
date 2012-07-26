@@ -5,6 +5,8 @@ import java.net.InetSocketAddress;
 import java.text.DecimalFormat;
 
 import org.simpleframework.transport.connect.SocketConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Mock class for API testing
@@ -13,7 +15,8 @@ import org.simpleframework.transport.connect.SocketConnection;
  * 
  */
 public class ConnectorAPIMock implements Runnable {
-
+	
+	private static final Logger LOG = LoggerFactory.getLogger(ConnectorAPIMock.class);
 	private final int port = 8783;
 	private final String path;
 	private SocketConnection conn;
@@ -45,9 +48,9 @@ public class ConnectorAPIMock implements Runnable {
 		}
 		this.conn.close();
 		this.running = false;
-		System.out.println(":: total used:\t" + fmt.format((double) Runtime.getRuntime().totalMemory() / (1024d * 1024d)) + " MB ");
-		System.out.println(":: after start: " + fmt.format(startupMem / (1024d * 1024d)) + " MB");
-		System.out.println(":: growth:\t" + fmt.format((Runtime.getRuntime().totalMemory() - startupMem)/(1024d*1024d)) + " MB");
+		LOG.debug(":: total used:\t" + fmt.format((double) Runtime.getRuntime().totalMemory() / (1024d * 1024d)) + " MB ");
+		LOG.debug(":: after start:\t" + fmt.format(startupMem / (1024d * 1024d)) + " MB");
+		LOG.debug(":: growth:\t\t" + fmt.format((Runtime.getRuntime().totalMemory() - startupMem)/(1024d*1024d)) + " MB");
 	}
 
 	private void startServer() throws IOException {
