@@ -4,7 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -99,6 +102,8 @@ public class MockContainer implements Container {
 				handleRetrieveEntity(req, resp);
 			} else if (contextPath.startsWith("/metadata/")) {
 				handleRetrieveMetadata(req, resp);
+			} else if (contextPath.startsWith("/entity-version-list/")) {
+				handleRetrieveVersionList(req, resp);
 			} else {
 				resp.setCode(404);
 			}
@@ -107,6 +112,19 @@ public class MockContainer implements Container {
 		} finally {
 			resp.close();
 		}
+	}
+
+	private void handleRetrieveVersionList(Request req, Response resp) throws Exception{
+		String id=req.getPath().getPath().substring(21);
+		List<String> versionList=storage.getVersionList(id);
+		Collections.sort(versionList);
+		StringBuffer xmlBuf=new StringBuffer("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<version-list id=\"" + id + "\">\n");
+		for (String version:versionList) {
+			xmlBuf.append("\t<version number=\"" + version + "\" />\n");
+		}
+		xmlBuf.append("</version-list>\n");
+		IOUtils.write(xmlBuf.toString().getBytes(), resp.getOutputStream());
+		resp.setCode(200);
 	}
 
 	private void handleRetrieveMetadata(Request req, Response resp) throws Exception {
@@ -121,8 +139,6 @@ public class MockContainer implements Container {
 			resp.setCode(200);
 		} catch (FileNotFoundException e) {
 			resp.setCode(404);
-		} finally {
-			resp.close();
 		}
 	}
 

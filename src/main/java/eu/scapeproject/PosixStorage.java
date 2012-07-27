@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,6 +35,7 @@ public class PosixStorage {
 
 	private final File xmlDirectory;
 	private final File datastreamDirectory;
+	private final Pattern versionPattern=Pattern.compile("version\\-\\d*\\.xml");
 
 	public PosixStorage(String directory) {
 		File parent = new File(directory);
@@ -109,7 +112,6 @@ public class PosixStorage {
 	public int getNewVersionNumber(String id) throws IOException{
 		int version=1;
 		File dir=getEntityDir(id);
-		Pattern versionPattern=Pattern.compile("version\\-\\d*\\.xml");
 		for (String name:dir.list()){
 			Matcher m=versionPattern.matcher(name);
 			if (m.find()){
@@ -128,5 +130,17 @@ public class PosixStorage {
 			f.mkdir();
 		}
 		return f;
+	}
+
+	public List<String> getVersionList(String id) throws IOException{
+		List<String> versionList= new ArrayList<String>();
+		File dir=getEntityDir(id);
+		for (String name:dir.list()){
+			Matcher m=versionPattern.matcher(name);
+			if (m.find()){
+				versionList.add(name.substring(m.start() + 8,m.end() - 4));
+			}
+		}
+		return versionList;
 	}
 }

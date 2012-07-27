@@ -7,6 +7,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 
+import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.mets.MetsMarshaller;
 
@@ -14,6 +15,7 @@ public class ConnectorAPIUtil {
 	private static final String MOCK_URL="http://localhost:8783";
 	private static final String ENTITY_PATH="/entity";
 	private static final String METADATA_PATH="/metadata";
+	private static final String ENTITY_VERSION_LIST_PATH="/entity-version-list";
 	private static ConnectorAPIUtil INSTANCE;
 
 	private ConnectorAPIUtil(){
@@ -53,6 +55,10 @@ public class ConnectorAPIUtil {
         MetsMarshaller.getInstance().serialize(ie, bos);
         put.setEntity(new ByteArrayEntity(bos.toByteArray()));
 		return put;
+	}
+
+	public HttpGet createGetVersionList(String id) {
+		return new HttpGet(MOCK_URL + ENTITY_VERSION_LIST_PATH + "/" + id);
 	}
 
 }

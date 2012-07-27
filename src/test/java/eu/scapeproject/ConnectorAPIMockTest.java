@@ -58,6 +58,35 @@ public class ConnectorAPIMockTest {
 	}
 
 	@Test
+	public void retrieveVersionList() throws Exception {
+		IntellectualEntity version1 = new IntellectualEntity.Builder()
+				.identifier(new Identifier(UUID.randomUUID().toString()))
+				.descriptive(new DCMetadata.Builder()
+						.title("A test entity")
+						.date(new Date())
+						.language("en")
+						.build())
+				.build();
+		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(version1);
+		HttpResponse resp = CLIENT.execute(post);
+		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 201);
+		
+		IntellectualEntity version2 = new IntellectualEntity.Builder(version1)
+				.build();
+		HttpPut put = ConnectorAPIUtil.getInstance().createPutEntity(version1);
+		resp = CLIENT.execute(put);
+		put.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+		
+		HttpGet get = ConnectorAPIUtil.getInstance().createGetVersionList(version1.getIdentifier().getValue());
+		resp = CLIENT.execute(get);
+		IOUtils.copy(resp.getEntity().getContent(), System.out);
+		get.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+	}
+
+	@Test
 	public void updateIntellectualEntity() throws Exception {
 		IntellectualEntity version1 = new IntellectualEntity.Builder()
 				.identifier(new Identifier(UUID.randomUUID().toString()))
@@ -71,8 +100,8 @@ public class ConnectorAPIMockTest {
 		HttpResponse resp = CLIENT.execute(post);
 		post.releaseConnection();
 		assertTrue(resp.getStatusLine().getStatusCode() == 201);
-		IntellectualEntity version2=new IntellectualEntity.Builder(version1)
-			.build();
+		IntellectualEntity version2 = new IntellectualEntity.Builder(version1)
+				.build();
 		HttpPut put = ConnectorAPIUtil.getInstance().createPutEntity(version1);
 		resp = CLIENT.execute(put);
 		put.releaseConnection();
