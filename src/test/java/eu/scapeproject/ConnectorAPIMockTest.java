@@ -57,6 +57,28 @@ public class ConnectorAPIMockTest {
 	}
 
 	@Test
+	public void ingestTwoVersions() throws Exception {
+		IntellectualEntity version1 = new IntellectualEntity.Builder()
+				.identifier(new Identifier(UUID.randomUUID().toString()))
+				.descriptive(new DCMetadata.Builder()
+						.title("A test entity")
+						.date(new Date())
+						.language("en")
+						.build())
+				.build();
+		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(version1);
+		HttpResponse resp = CLIENT.execute(post);
+		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 201);
+		IntellectualEntity version2=new IntellectualEntity.Builder(version1)
+			.build();
+		post = ConnectorAPIUtil.getInstance().createPostEntity(version1);
+		resp = CLIENT.execute(post);
+		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 201);
+	}
+
+	@Test
 	public void testIngestMinimalIntellectualEntity() throws Exception {
 		IntellectualEntity ie = new IntellectualEntity.Builder()
 				.identifier(new Identifier(UUID.randomUUID().toString()))
@@ -92,10 +114,10 @@ public class ConnectorAPIMockTest {
 		post.releaseConnection();
 		assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
-		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(ie.getIdentifier().getValue(),true);
+		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(ie.getIdentifier().getValue(), true);
 		resp = CLIENT.execute(get);
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
-		MetsDocument doc=(MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+		MetsDocument doc = (MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
 		assertTrue(doc.getDmdSec() != null);
 		assertTrue(doc.getDmdSec().getMetadataReference() != null);
 		assertTrue(doc.getDmdSec().getMetadataWrapper() == null);
@@ -121,26 +143,27 @@ public class ConnectorAPIMockTest {
 
 	@Test
 	public void testRetrieveMetadataRecord() throws Exception {
-		IntellectualEntity entity=ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI.create("http://example.com/void"))));
+		IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
+				.create("http://example.com/void"))));
 		// post an entity without identifiers
-		HttpPost post=ConnectorAPIUtil.getInstance().createPostEntity(entity);
+		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
 		CLIENT.execute(post);
 		post.releaseConnection();
-		
+
 		// fetch the entity to learn the generated idenifiers
-		HttpGet get=ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
-		HttpResponse resp=CLIENT.execute(get);
-		IntellectualEntity fetched=MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
+		HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
+		HttpResponse resp = CLIENT.execute(get);
+		IntellectualEntity fetched = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
 		get.releaseConnection();
-		
+
 		// and try to fetch and validate the fecthed entity's metadata
-		get=ConnectorAPIUtil.getInstance().createGetMetadata(fetched.getDescriptive().getId());
-		resp=CLIENT.execute(get);
+		get = ConnectorAPIUtil.getInstance().createGetMetadata(fetched.getDescriptive().getId());
+		resp = CLIENT.execute(get);
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
-		ByteArrayOutputStream bos=new ByteArrayOutputStream();
-		IOUtils.copy(resp.getEntity().getContent(),bos);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		IOUtils.copy(resp.getEntity().getContent(), bos);
 		get.releaseConnection();
-		DCMetadata dc=MetsMarshaller.getInstance().deserialize(DCMetadata.class, new ByteArrayInputStream(bos.toByteArray()));
-		assertEquals(entity.getDescriptive(),dc);
+		DCMetadata dc = MetsMarshaller.getInstance().deserialize(DCMetadata.class, new ByteArrayInputStream(bos.toByteArray()));
+		assertEquals(entity.getDescriptive(), dc);
 	}
 }

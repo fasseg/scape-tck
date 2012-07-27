@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SerializationException;
@@ -85,9 +87,10 @@ public class MockContainer implements Container {
 	}
 
 	private void handleRetrieveMetadata(Request req, Response resp) throws Exception {
-		String id = req.getPath().getPath().substring(10);
+		int version = getVersionFromPath(req.getPath().getPath().substring(10));
+		String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
 		try {
-			byte[] blob = storage.getXML(metadataIdMap.get(id));
+			byte[] blob = storage.getXML(metadataIdMap.get(id),version);
 			IntellectualEntity e = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
 			DCMetadata dc = (DCMetadata) e.getDescriptive();
 			resp.set("Content-Type", "text/xml");
@@ -100,10 +103,22 @@ public class MockContainer implements Container {
 		}
 	}
 
+	private static int getVersionFromPath(String path){
+		
+		// check if the user requests a specific version
+		Matcher m = Pattern.compile("/\\d*/").matcher(path);
+		if (m.find()){
+			return Integer.parseInt(path.substring(m.start() + 1,m.end() - 1));
+		} else{
+			return 1;
+		}
+	}
+	
 	private void handleRetrieveEntity(Request req, Response resp) throws Exception {
-		String id = req.getPath().getPath().substring(8);
+		int version=getVersionFromPath(req.getPath().getPath().substring(8));
+		String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
 		try {
-			byte[] blob = storage.getXML(id);
+			byte[] blob = storage.getXML(id,version);
 			if (req.getParameter("useReferences") != null && req.getParameter("useReferences").equalsIgnoreCase("true")){
 				MetsDocument doc=(MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(blob));
 				MetsMDRef.Builder ref=new MetsMDRef.Builder()
@@ -151,7 +166,11 @@ public class MockContainer implements Container {
 			// save the data in the storage backend
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 			MetsMarshaller.getInstance().serialize(entity, bos);
-			storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), false);
+			int version=entity.getVersionNumber();
+			if (storage.exists(entity.getIdentifier().getValue(),entity.getVersionNumber())){
+				version=storage.getNewVersionNumber(entity.getIdentifier().getValue());
+			}
+			storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), version, false);
 			LOG.debug("wrote new file " + entity.getIdentifier().getValue());
 
 			// update the hashmap with the metadata references to the entities
