@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -24,18 +23,22 @@ import org.slf4j.LoggerFactory;
 import eu.scapeproject.dto.mets.MetsDMDSec;
 import eu.scapeproject.dto.mets.MetsDocument;
 import eu.scapeproject.dto.mets.MetsMDRef;
+import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
+import eu.scapeproject.model.Representation;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.mets.MetsMarshaller;
 import eu.scapeproject.model.util.MetsUtil;
 
 public class MockContainer implements Container {
+	
 	private static final Logger LOG = LoggerFactory.getLogger(MockContainer.class);
 	private final PosixStorage storage;
 	private final Map<String, String> metadataIdMap = new HashMap<String, String>();
+	private final Map<String,String> fileIdMap = new HashMap<String, String>();
 	private final int port;
 
 	public MockContainer(String path,int port) {
@@ -104,6 +107,8 @@ public class MockContainer implements Container {
 				handleRetrieveMetadata(req, resp);
 			} else if (contextPath.startsWith("/entity-version-list/")) {
 				handleRetrieveVersionList(req, resp);
+			} else if (contextPath.startsWith("/file/")) {
+				handleRetrieveFile(req, resp);
 			} else {
 				resp.setCode(404);
 			}
@@ -112,6 +117,31 @@ public class MockContainer implements Container {
 		} finally {
 			resp.close();
 		}
+	}
+
+	private void handleRetrieveFile(Request req, Response resp) throws Exception{
+		int version=1;
+		String fileId=req.getPath().getPath().substring(6);
+		String entityIdid=fileIdMap.get(fileId);
+		boolean found=false;
+		if (entityIdid == null){
+			resp.setCode(404);
+		}else{
+			IntellectualEntity entity=MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(storage.getXML(entityIdid, 1)));
+			MetsMarshaller.getInstance().serialize(getFile(fileId, entity), resp.getOutputStream());
+			resp.setCode(200);
+		}
+	}
+	
+	private File getFile(String id,IntellectualEntity entity){
+		for (Representation r:entity.getRepresentations()){
+			for (File f:r.getFiles()){
+				if (f.getIdentifier().getValue().equals(id)){
+					return f;
+				}
+			}
+		}
+		return null;
 	}
 
 	private void handleRetrieveVersionList(Request req, Response resp) throws Exception{
@@ -209,6 +239,13 @@ public class MockContainer implements Container {
 			// now build the entity again with proper identifiers
 			entity = entityBuilder.build();
 			LOG.debug("writing entity " + entity.getIdentifier().getValue());
+			
+			// save the file identifiers to the according map
+			for (Representation r:entity.getRepresentations()){
+				for (File f:r.getFiles()){
+					fileIdMap.put(f.getIdentifier().getValue(),entity.getIdentifier().getValue());
+				}
+			}
 
 			// save the data in the storage backend
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();

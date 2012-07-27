@@ -172,6 +172,23 @@ public class ConnectorAPIMockTest {
 	}
 
 	@Test
+	public void retrieveFile() throws Exception{
+		IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
+				.create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
+		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
+		HttpResponse resp = CLIENT.execute(post);
+		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+		HttpGet get = ConnectorAPIUtil.getInstance().createGetFile(entity.getRepresentations().get(0).getFiles().iterator().next());
+		resp=CLIENT.execute(get);
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+		String xml=IOUtils.toString(resp.getEntity().getContent());
+		assertTrue(xml.length() > 10); //check for some content
+		get.releaseConnection();
+	}
+
+	@Test
 	public void testRetrieveMetadataRecord() throws Exception {
 		IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
 				.create("http://example.com/void"))));
