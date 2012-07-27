@@ -41,25 +41,29 @@ public class MockContainer implements Container {
 	}
 
 	public void handle(Request req, Response resp) {
-		if (req.getMethod().equals("POST")) {
-			handlePost(req, resp);
-		} else if (req.getMethod().equals("DELETE")) {
-
-		} else if (req.getMethod().equals("PUT")) {
-
-		} else if (req.getMethod().equals("GET")) {
-			handleGet(req, resp);
-		} else {
-			LOG.error("Unable to handle method of type " + req.getMethod());
+		try{
+			if (req.getMethod().equals("POST")) {
+				handlePost(req, resp);
+			} else if (req.getMethod().equals("DELETE")) {
+	
+			} else if (req.getMethod().equals("PUT")) {
+				handlePut(req,resp);
+			} else if (req.getMethod().equals("GET")) {
+				handleGet(req, resp);
+			} else {
+				LOG.error("Unable to handle method of type " + req.getMethod());
+			}
+		}catch(IOException e){
+			throw new RuntimeException(e);
 		}
 	}
 
-	private void handlePost(Request req, Response resp) {
+	private void handlePut(Request req, Response resp) {
 		String contextPath = req.getPath().getPath();
-		LOG.info("-- HTTP/1.1 POST " + contextPath);
+		LOG.info("-- HTTP/1.1 PUT " + contextPath);
 		try {
-			if (contextPath.equals("/entity")) {
-				handleIngest(req, resp);
+			if (contextPath.startsWith("/entity/")) {
+				handleUpdate(req, resp);
 			} else {
 				resp.setCode(404);
 				resp.close();
@@ -67,9 +71,27 @@ public class MockContainer implements Container {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 	}
 
-	private void handleGet(Request req, Response resp) {
+
+	private void handlePost(Request req, Response resp) throws IOException{
+		String contextPath = req.getPath().getPath();
+		LOG.info("-- HTTP/1.1 POST " + contextPath);
+		try {
+			if (contextPath.equals("/entity")) {
+				handleIngest(req, resp,201);
+			} else {
+				resp.setCode(404);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			resp.close();
+		}
+	}
+
+	private void handleGet(Request req, Response resp) throws IOException{
 		String contextPath = req.getPath().getPath();
 		LOG.info("-- HTTP/1.1 GET " + contextPath);
 		try {
@@ -79,10 +101,11 @@ public class MockContainer implements Container {
 				handleRetrieveMetadata(req, resp);
 			} else {
 				resp.setCode(404);
-				resp.close();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			resp.close();
 		}
 	}
 
@@ -142,8 +165,16 @@ public class MockContainer implements Container {
 			resp.close();
 		}
 	}
+	
+	private void handleUpdate(Request req, Response resp) throws Exception{
+		try{
+			handleIngest(req, resp,200);
+		}finally{
+			resp.close();
+		}
+	}
 
-	private void handleIngest(Request req, Response resp) throws Exception {
+	private void handleIngest(Request req, Response resp,int okValue) throws Exception {
 		try {
 			IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(MetsMarshaller.getInstance().deserialize(
 					IntellectualEntity.class, req.getInputStream()));
@@ -177,15 +208,12 @@ public class MockContainer implements Container {
 			metadataIdMap.put(entity.getDescriptive().getId(), entity.getIdentifier().getValue());
 
 			// generate the server response with the ingested entity's id
-			resp.setCode(201);
+			resp.setCode(okValue);
 			resp.set("Content-Type", "text/plain");
 			IOUtils.copy(new ByteArrayInputStream(entity.getIdentifier().getValue().getBytes()), resp.getOutputStream());
 		} catch (IOException e) {
 			resp.setCode(500);
 			throw new SerializationException(e);
-		} finally {
-			resp.close();
-
 		}
 	}
 

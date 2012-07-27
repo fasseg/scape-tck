@@ -14,6 +14,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -57,7 +58,7 @@ public class ConnectorAPIMockTest {
 	}
 
 	@Test
-	public void ingestTwoVersions() throws Exception {
+	public void updateIntellectualEntity() throws Exception {
 		IntellectualEntity version1 = new IntellectualEntity.Builder()
 				.identifier(new Identifier(UUID.randomUUID().toString()))
 				.descriptive(new DCMetadata.Builder()
@@ -72,10 +73,10 @@ public class ConnectorAPIMockTest {
 		assertTrue(resp.getStatusLine().getStatusCode() == 201);
 		IntellectualEntity version2=new IntellectualEntity.Builder(version1)
 			.build();
-		post = ConnectorAPIUtil.getInstance().createPostEntity(version1);
-		resp = CLIENT.execute(post);
-		post.releaseConnection();
-		assertTrue(resp.getStatusLine().getStatusCode() == 201);
+		HttpPut put = ConnectorAPIUtil.getInstance().createPutEntity(version1);
+		resp = CLIENT.execute(put);
+		put.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
 	}
 
 	@Test
