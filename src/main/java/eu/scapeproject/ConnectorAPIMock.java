@@ -57,6 +57,7 @@ public class ConnectorAPIMock implements Runnable {
 		this.container = new MockContainer(this.path, this.port);
 		this.conn = new SocketConnection(this.container);
 		this.startupMem = Runtime.getRuntime().totalMemory();
+		this.container.start();
 		this.conn.connect(new InetSocketAddress(this.port));
 	}
 
@@ -64,7 +65,7 @@ public class ConnectorAPIMock implements Runnable {
 		return this.running;
 	}
 
-	public void purgeStorage() throws Exception {
-		this.container.purgeStorage();
+	public void close() throws Exception {
+		this.container.close();
 	}
 }

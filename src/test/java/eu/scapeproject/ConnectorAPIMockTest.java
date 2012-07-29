@@ -20,9 +20,12 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import ch.qos.logback.core.spi.LifeCycle;
+
 import eu.scapeproject.dto.mets.MetsDocument;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
+import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.mets.MetsMarshaller;
@@ -45,7 +48,7 @@ public class ConnectorAPIMockTest {
 	@AfterClass
 	public static void tearDown() throws Exception {
 		MOCK.stop();
-		MOCK.purgeStorage();
+		MOCK.close();
 		assertFalse(MOCK.isRunning());
 	}
 
@@ -127,6 +130,44 @@ public class ConnectorAPIMockTest {
 		resp = CLIENT.execute(get);
 		assertTrue(resp.getStatusLine().getStatusCode() == 200);
 		get.releaseConnection();
+	}
+
+	@Test
+	public void testIngestMinimalIntellectualEntityAsynchronously() throws Exception {
+		IntellectualEntity ie = new IntellectualEntity.Builder()
+				.identifier(new Identifier(UUID.randomUUID().toString()))
+				.descriptive(new DCMetadata.Builder()
+						.title("A test entity")
+						.date(new Date())
+						.language("en")
+						.build())
+				.build();
+		HttpPost post = ConnectorAPIUtil.getInstance().createPostEntityAsync(ie);
+		HttpResponse resp = CLIENT.execute(post);
+		post.releaseConnection();
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+
+		// check the lifecyclestate
+		HttpGet get=ConnectorAPIUtil.getInstance().createGetEntityLifecycleState(ie.getIdentifier().getValue());
+		resp=CLIENT.execute(get);
+		LifecycleState lifecycle=(LifecycleState) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+		get.releaseConnection();
+		assertTrue(lifecycle.getState() == State.INGESTING);
+		assertTrue(resp.getStatusLine().getStatusCode() == 200);
+		
+		// wait for the state to change for 15 secs, then throw an exception
+		long timeStart=System.currentTimeMillis();
+		while (lifecycle.getState() != State.INGESTED){
+			int elapsed=(int) ((System.currentTimeMillis() - timeStart) / 1000D);
+			if (elapsed > 15) {
+				fail("timeout while asynchronously ingesting object");
+			}
+			System.out.println("waiting for ingestion. " + elapsed + " seconds passed");
+			Thread.sleep(1000);
+			get=ConnectorAPIUtil.getInstance().createGetEntityLifecycleState(ie.getIdentifier().getValue());
+			resp=CLIENT.execute(get);
+			lifecycle=(LifecycleState) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+		}
 	}
 
 	@Test

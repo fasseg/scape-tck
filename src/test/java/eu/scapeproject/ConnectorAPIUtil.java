@@ -15,9 +15,12 @@ import eu.scapeproject.model.mets.MetsMarshaller;
 public class ConnectorAPIUtil {
 	private static final String MOCK_URL="http://localhost:8783";
 	private static final String ENTITY_PATH="/entity";
+	private static final String ENTITY_ASYNC_PATH="/entity-async";
 	private static final String FILE_PATH="/file";
 	private static final String METADATA_PATH="/metadata";
 	private static final String ENTITY_VERSION_LIST_PATH="/entity-version-list";
+	private static final String LIFECYCLE_STATE_PATH="/lifecycle";
+	
 	private static ConnectorAPIUtil INSTANCE;
 
 	private ConnectorAPIUtil(){
@@ -65,6 +68,18 @@ public class ConnectorAPIUtil {
 
 	public HttpGet createGetFile(File next) {
 		return new HttpGet(MOCK_URL + FILE_PATH + "/" + next.getIdentifier().getValue());
+	}
+
+	public HttpPost createPostEntityAsync(IntellectualEntity ie) throws Exception{
+        HttpPost post=new HttpPost(MOCK_URL + ENTITY_ASYNC_PATH);
+        ByteArrayOutputStream bos=new ByteArrayOutputStream();
+        MetsMarshaller.getInstance().serialize(ie, bos);
+        post.setEntity(new ByteArrayEntity(bos.toByteArray()));
+        return post;
+	}
+
+	public HttpGet createGetEntityLifecycleState(String id) {
+		return new HttpGet(MOCK_URL + LIFECYCLE_STATE_PATH + "/" + id);
 	}
 
 }
