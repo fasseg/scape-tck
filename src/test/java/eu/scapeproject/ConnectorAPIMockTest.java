@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.scapeproject.dto.mets.MetsDocument;
+import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.IntellectualEntityCollection;
@@ -280,9 +281,9 @@ public class ConnectorAPIMockTest {
         HttpGet get = ConnectorAPIUtil.getInstance().createGetFile(entity.getRepresentations().get(0).getFiles().iterator().next());
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        String xml = IOUtils.toString(resp.getEntity().getContent());
-        assertTrue(xml.length() > 10); // check for some content
+        File fetched=MetsMarshaller.getInstance().deserialize(File.class, resp.getEntity().getContent());
         get.releaseConnection();
+        assertEquals(entity.getRepresentations().get(0).getFiles().get(0),fetched); // check for some content
     }
 
     @Test
