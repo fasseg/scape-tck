@@ -400,7 +400,6 @@ public class MockContainer implements Container {
 		entityBuilder.lifecycleState(new LifecycleState("ingested", State.INGESTED));
 		// now build the entity again with proper identifiers
 		entity = entityBuilder.build();
-		LOG.debug("writing entity " + entity.getIdentifier().getValue());
 
 		// save the file identifiers to the according map
 		if (entity.getRepresentations() != null) {
@@ -420,7 +419,6 @@ public class MockContainer implements Container {
 			version = storage.getNewVersionNumber(entity.getIdentifier().getValue());
 		}
 		storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), version, false);
-		LOG.debug("wrote new file " + entity.getIdentifier().getValue());
 
 		// update the hashmap with the metadata references to the entities
 		metadataIdMap.put(entity.getDescriptive().getId(), entity.getIdentifier().getValue());

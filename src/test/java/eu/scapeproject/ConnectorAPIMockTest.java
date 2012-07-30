@@ -216,10 +216,11 @@ public class ConnectorAPIMockTest {
         long timeStart = System.currentTimeMillis();
         while (lifecycle.getState() != State.INGESTED) {
             int elapsed = (int) ((System.currentTimeMillis() - timeStart) / 1000D);
-            if (elapsed > 15) {
+            int timeout=15;
+            if (elapsed > timeout) {
                 fail("timeout while asynchronously ingesting object");
             }
-            log.info("TEST: waiting for ingestion. " + elapsed + " seconds passed");
+            log.info("   waiting for asynchronous ingestion. " + elapsed + " of " + timeout + " seconds passed");
             Thread.sleep(1000);
             get = ConnectorAPIUtil.getInstance().createGetEntityLifecycleState(ie.getIdentifier().getValue());
             resp = CLIENT.execute(get);

@@ -17,6 +17,8 @@ import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eu.scapeproject.dto.mets.MetsDocument;
 import eu.scapeproject.model.IntellectualEntity;
@@ -36,6 +38,8 @@ public class PosixStorage {
     private final File xmlDirectory;
     private final File datastreamDirectory;
     private final Pattern versionPattern = Pattern.compile("version\\-\\d*\\.xml");
+    
+	private static final Logger LOG = LoggerFactory.getLogger(PosixStorage.class);
 
     public PosixStorage(String directory) {
         File parent = new File(directory);
@@ -81,6 +85,7 @@ public class PosixStorage {
             throw new IOException("File " + f.getAbsolutePath() + " exists already!");
         }
         OutputStream out = null;
+		LOG.debug("## wrote new file " + name);
         try {
             out = new FileOutputStream(f);
             IOUtils.write(blob, out);
