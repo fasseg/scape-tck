@@ -48,9 +48,9 @@ public class ConnectorAPIMock implements Runnable {
 		}
 		this.conn.close();
 		this.running = false;
-		LOG.debug(":: total used:\t" + fmt.format((double) Runtime.getRuntime().totalMemory() / (1024d * 1024d)) + " MB ");
-		LOG.debug(":: after start:\t" + fmt.format(startupMem / (1024d * 1024d)) + " MB");
-		LOG.debug(":: growth:\t\t" + fmt.format((Runtime.getRuntime().totalMemory() - startupMem)/(1024d*1024d)) + " MB");
+		LOG.debug(">> total used:\t" + fmt.format((double) Runtime.getRuntime().totalMemory() / (1024d * 1024d)) + " MB ");
+		LOG.debug(">> after start:\t" + fmt.format(startupMem / (1024d * 1024d)) + " MB");
+		LOG.debug(">> growth:\t\t" + fmt.format((Runtime.getRuntime().totalMemory() - startupMem)/(1024d*1024d)) + " MB");
 	}
 
 	private void startServer() throws IOException {

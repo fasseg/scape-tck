@@ -30,11 +30,13 @@ import org.slf4j.LoggerFactory;
 import eu.scapeproject.dto.mets.MetsDocument;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
+import eu.scapeproject.model.IntellectualEntityCollection;
 import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.VersionList;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.mets.MetsMarshaller;
+import eu.scapeproject.model.util.MetsUtil;
 
 public class ConnectorAPIMockTest {
 
@@ -101,7 +103,7 @@ public class ConnectorAPIMockTest {
 
     @Test
     public void testgetIntellectualEntityList() throws Exception {
-        List<String> ids=new ArrayList<String>();
+        List<String> ids = new ArrayList<String>();
         // ingest entity 1
         IntellectualEntity entity1 = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
@@ -131,20 +133,20 @@ public class ConnectorAPIMockTest {
         resp = CLIENT.execute(post);
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
-        
-        StringBuilder uriList=new StringBuilder();
-        for (String id:ids){
+
+        StringBuilder uriList = new StringBuilder();
+        for (String id : ids) {
             uriList.append(id + "\n");
         }
-        post=ConnectorAPIUtil.createGetUriList(uriList.toString());
-        resp=CLIENT.execute(post);
-        IOUtils.copy(resp.getEntity().getContent(), System.out);
+        post = ConnectorAPIUtil.createGetUriList(uriList.toString());
+        resp = CLIENT.execute(post);
+        // IOUtils.copy(resp.getEntity().getContent(), System.out);
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
     }
 
     @Test
-    public void updateIntellectualEntity() throws Exception {
+    public void testUpdateIntellectualEntity() throws Exception {
         IntellectualEntity version1 = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
                 .descriptive(new DCMetadata.Builder()
@@ -267,7 +269,7 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
-    public void retrieveFile() throws Exception {
+    public void testRetrieveFile() throws Exception {
         IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
                 .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
         HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
@@ -281,6 +283,33 @@ public class ConnectorAPIMockTest {
         String xml = IOUtils.toString(resp.getEntity().getContent());
         assertTrue(xml.length() > 10); // check for some content
         get.releaseConnection();
+    }
+
+    @Test
+    public void testSearchEntity() throws Exception {
+        // ingest an entity to search in
+        IntellectualEntity.Builder ie = new IntellectualEntity.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .descriptive(new DCMetadata.Builder()
+                        .title("A test entity")
+                        .description("this should yield a hit!")
+                        .date(new Date())
+                        .language("en")
+                        .build());
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie.build());
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+        //and search for the ingested entity
+        HttpGet get=ConnectorAPIUtil.getInstance().createGetSRUEntity("should");
+        resp=CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        IntellectualEntityCollection resultSet=(IntellectualEntityCollection) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        get.releaseConnection();
+        assertTrue(resultSet.getEntities().size() == 1);
+        IntellectualEntity searched=MetsMarshaller.getInstance().deserializeEntity(resultSet.getEntities().get(0));
+        assertEquals(ie.lifecycleState(new LifecycleState("", State.INGESTED)).build(), searched);
     }
 
     @Test

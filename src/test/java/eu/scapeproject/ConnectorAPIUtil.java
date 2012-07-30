@@ -18,6 +18,7 @@ public class ConnectorAPIUtil {
 	private static final String ENTITY_PATH="/entity";
     private static final String ENTITY_LIST_PATH="/entity-list";
 	private static final String ENTITY_ASYNC_PATH="/entity-async";
+	private static final String ENTITY_SRU_PATH="/sru/entities";
 	private static final String FILE_PATH="/file";
 	private static final String METADATA_PATH="/metadata";
 	private static final String ENTITY_VERSION_LIST_PATH="/entity-version-list";
@@ -83,6 +84,11 @@ public class ConnectorAPIUtil {
 	public HttpGet createGetEntityLifecycleState(String id) {
 		return new HttpGet(MOCK_URL + LIFECYCLE_STATE_PATH + "/" + id);
 	}
+
+    public HttpGet createGetSRUEntity(String term) {
+        //TODO: Schema for entitylists
+        return new HttpGet(MOCK_URL + ENTITY_SRU_PATH + "?operation=searchRetrieve&query=" + term +"&recordPacking=xml&recordSchema=entitylist.xsd");
+    }
 
     public static HttpPost createGetUriList(String string) {
         HttpPost post=new HttpPost(MOCK_URL + ENTITY_LIST_PATH);
