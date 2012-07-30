@@ -6,6 +6,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.StringEntity;
 
 import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
@@ -15,6 +16,7 @@ import eu.scapeproject.model.mets.MetsMarshaller;
 public class ConnectorAPIUtil {
 	private static final String MOCK_URL="http://localhost:8783";
 	private static final String ENTITY_PATH="/entity";
+    private static final String ENTITY_LIST_PATH="/entity-list";
 	private static final String ENTITY_ASYNC_PATH="/entity-async";
 	private static final String FILE_PATH="/file";
 	private static final String METADATA_PATH="/metadata";
@@ -81,5 +83,11 @@ public class ConnectorAPIUtil {
 	public HttpGet createGetEntityLifecycleState(String id) {
 		return new HttpGet(MOCK_URL + LIFECYCLE_STATE_PATH + "/" + id);
 	}
+
+    public static HttpPost createGetUriList(String string) {
+        HttpPost post=new HttpPost(MOCK_URL + ENTITY_LIST_PATH);
+        post.setEntity(new ByteArrayEntity(string.getBytes()));
+        return post;
+    }
 
 }

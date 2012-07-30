@@ -4,10 +4,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,9 +30,11 @@ import eu.scapeproject.dto.mets.MetsMDRef;
 import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
+import eu.scapeproject.model.IntellectualEntityCollection;
 import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.Representation;
+import eu.scapeproject.model.VersionList;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.mets.MetsMarshaller;
 import eu.scapeproject.model.util.MetsUtil;
@@ -78,7 +80,7 @@ public class MockContainer implements Container {
 
 	private void handlePut(Request req, Response resp) {
 		String contextPath = req.getPath().getPath();
-		LOG.info("-- HTTP/1.1 PUT " + contextPath);
+		LOG.info("-- HTTP/1.1 PUT " + contextPath + " from " + req.getClientAddress().getAddress().getHostAddress());
 		try {
 			if (contextPath.startsWith("/entity/")) {
 				handleUpdate(req, resp);
@@ -94,12 +96,14 @@ public class MockContainer implements Container {
 
 	private void handlePost(Request req, Response resp) throws IOException {
 		String contextPath = req.getPath().getPath();
-		LOG.info("-- HTTP/1.1 POST " + contextPath);
+		LOG.info("-- HTTP/1.1 POST " + contextPath + " from " + req.getClientAddress().getAddress().getHostAddress());
 		try {
 			if (contextPath.equals("/entity-async")) {
 				handleAsyncIngest(req, resp, 200);
 			} else if (contextPath.equals("/entity")) {
 				handleIngest(req, resp, 201);
+            } else if (contextPath.equals("/entity-list")) {
+                handleRetrieveEntityList(req, resp);
 			} else {
 				resp.setCode(404);
 			}
@@ -110,9 +114,10 @@ public class MockContainer implements Container {
 		}
 	}
 
-	private void handleGet(Request req, Response resp) throws IOException {
+
+    private void handleGet(Request req, Response resp) throws IOException {
 		String contextPath = req.getPath().getPath();
-		LOG.info("-- HTTP/1.1 GET " + contextPath);
+		LOG.info("-- HTTP/1.1 GET " + contextPath + " from " + req.getClientAddress().getAddress().getHostAddress());
 		try {
 			if (contextPath.startsWith("/entity/")) {
 				handleRetrieveEntity(req, resp);
@@ -181,15 +186,10 @@ public class MockContainer implements Container {
 
 	private void handleRetrieveVersionList(Request req, Response resp) throws Exception {
 		String id = req.getPath().getPath().substring(21);
-		List<String> versionList = storage.getVersionList(id);
-		Collections.sort(versionList);
-		StringBuffer xmlBuf = new StringBuffer("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<version-list id=\"" + id
-				+ "\">\n");
-		for (String version : versionList) {
-			xmlBuf.append("\t<version number=\"" + version + "\" />\n");
-		}
-		xmlBuf.append("</version-list>\n");
-		IOUtils.write(xmlBuf.toString().getBytes(), resp.getOutputStream());
+		List<String> versions = storage.getVersionList(id);
+		Collections.sort(versions);
+		VersionList versionList=new VersionList(id,versions);
+		MetsMarshaller.getInstance().getJaxbMarshaller().marshal(versionList, resp.getOutputStream());
 		resp.setCode(200);
 	}
 
@@ -249,7 +249,19 @@ public class MockContainer implements Container {
 		}
 	}
 
-	private void handleUpdate(Request req, Response resp) throws Exception {
+    private void handleRetrieveEntityList(Request req, Response resp) throws Exception {
+        String[] uris=req.getContent().split("\\n");
+        List<MetsDocument> docs=new ArrayList<MetsDocument>();
+        for (String uri:uris){
+            byte[] blob=storage.getXML(uri, 1);
+            docs.add((MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(blob)));
+        }
+        IntellectualEntityCollection entities=new IntellectualEntityCollection(docs);
+        MetsMarshaller.getInstance().getJaxbMarshaller().marshal(entities, resp.getOutputStream());
+        resp.setCode(200);
+    }
+
+    private void handleUpdate(Request req, Response resp) throws Exception {
 		try {
 			handleIngest(req, resp, 200);
 		} finally {
@@ -358,6 +370,8 @@ public class MockContainer implements Container {
 
 	public class AsyncIngester implements Runnable {
 		private boolean stop = false;
+		
+       
 
 		public synchronized void stop() {
 			stop = true;
@@ -368,7 +382,7 @@ public class MockContainer implements Container {
 				for (Entry<Long, Object> asyncRequest : asyncIngestMap.entrySet()) {
 					if (new Date().getTime() >= asyncRequest.getKey()) {
 						try {
-							System.out.println("ingesting object at " + asyncRequest.getKey());
+							LOG.info("ingesting object at " + asyncRequest.getKey());
 							ingestObject(asyncRequest.getValue());
 						} catch (Exception e) {
 							e.printStackTrace();
