@@ -20,6 +20,7 @@ public class ConnectorAPIUtil {
     private static final String ENTITY_ASYNC_PATH = "/entity-async";
     private static final String ENTITY_SRU_PATH = "/sru/entities";
     private static final String ENTITY_VERSION_LIST_PATH = "/entity-version-list";
+    private static final String REPRESENTATION_PATH = "/representation/";
     private static final String REPRESENTATION_SRU_PATH = "/sru/representations";
     private static final String FILE_PATH = "/file";
     private static final String METADATA_PATH = "/metadata";
@@ -104,4 +105,7 @@ public class ConnectorAPIUtil {
         return new HttpGet(MOCK_URL + REPRESENTATION_SRU_PATH + "?operation=searchRetrieve&query=" + term + "&recordPacking=xml&recordSchema=entitylist.xsd");
     }
 
+    public HttpGet createGetRepresentation(String id) {
+        return new HttpGet(MOCK_URL + REPRESENTATION_PATH + "/" + id);
+    }
 }

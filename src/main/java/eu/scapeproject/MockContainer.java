@@ -125,6 +125,8 @@ public class MockContainer implements Container {
                 handleRetrieveEntity(req, resp);
             } else if (contextPath.startsWith("/metadata/")) {
                 handleRetrieveMetadata(req, resp);
+            } else if (contextPath.startsWith("/representation/")) {
+                handleRetrieveRepresentation(req, resp);
             } else if (contextPath.startsWith("/entity-version-list/")) {
                 handleRetrieveVersionList(req, resp);
             } else if (contextPath.startsWith("/sru/entities")) {
@@ -140,6 +142,20 @@ public class MockContainer implements Container {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            resp.close();
+        }
+    }
+
+    private void handleRetrieveRepresentation(Request req, Response resp) throws Exception{
+        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
+        try {
+            byte[] blob = storage.getXML(representationIdMap.get(id), getVersionFromPath(req.getPath().getPath()));
+            IOUtils.write(blob, resp.getOutputStream());
+            resp.setCode(200);
+            resp.close();
+        } catch (FileNotFoundException e) {
+            resp.setCode(404);
         } finally {
             resp.close();
         }

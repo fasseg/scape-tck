@@ -32,6 +32,7 @@ import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.IntellectualEntityCollection;
 import eu.scapeproject.model.LifecycleState;
+import eu.scapeproject.model.Representation;
 import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.VersionList;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
@@ -300,14 +301,15 @@ public class ConnectorAPIMockTest {
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
-        //and search for the ingested entity
-        HttpGet get=ConnectorAPIUtil.getInstance().createGetSRUEntity("should");
-        resp=CLIENT.execute(get);
+        // and search for the ingested entity
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetSRUEntity("should");
+        resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        IntellectualEntityCollection resultSet=(IntellectualEntityCollection) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        IntellectualEntityCollection resultSet = (IntellectualEntityCollection) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(
+                resp.getEntity().getContent());
         get.releaseConnection();
         assertTrue(resultSet.getEntities().size() == 1);
-        IntellectualEntity searched=MetsMarshaller.getInstance().deserializeEntity(resultSet.getEntities().get(0));
+        IntellectualEntity searched = MetsMarshaller.getInstance().deserializeEntity(resultSet.getEntities().get(0));
         assertEquals(ie.lifecycleState(new LifecycleState("", State.INGESTED)).build(), searched);
     }
 
@@ -328,15 +330,44 @@ public class ConnectorAPIMockTest {
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
-        //and search for the ingested entity
-        HttpGet get=ConnectorAPIUtil.getInstance().createGetSRUrepresentation("test-rep");
-        resp=CLIENT.execute(get);
+        // and search for the ingested entity
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetSRUrepresentation("test-rep");
+        resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        IntellectualEntityCollection resultSet=(IntellectualEntityCollection) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        IntellectualEntityCollection resultSet = (IntellectualEntityCollection) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(
+                resp.getEntity().getContent());
         get.releaseConnection();
         assertTrue(resultSet.getEntities().size() == 1);
-        IntellectualEntity searched=MetsMarshaller.getInstance().deserializeEntity(resultSet.getEntities().get(0));
+        IntellectualEntity searched = MetsMarshaller.getInstance().deserializeEntity(resultSet.getEntities().get(0));
         assertEquals(ie.lifecycleState(new LifecycleState("", State.INGESTED)).build(), searched);
+    }
+
+    @Test
+    public void testRetrieveRepresentation() throws Exception {
+        Representation rep = ModelUtil.createTestRepresentation("test-representation-" + System.currentTimeMillis());
+
+        // ingest the entity with it's representation for later fetching
+        IntellectualEntity.Builder ie = new IntellectualEntity.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .representations(Arrays.asList(rep))
+                .descriptive(new DCMetadata.Builder()
+                        .title("A test entity")
+                        .description("this should yield a hit!")
+                        .date(new Date())
+                        .language("en")
+                        .build());
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie.build());
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+        // and fetch the ingested representation
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetRepresentation(rep.getIdentifier().getValue());
+        resp = CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        IntellectualEntity entity = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
+        get.releaseConnection();
+        assertEquals(rep, entity.getRepresentations().get(0));
     }
 
     @Test
