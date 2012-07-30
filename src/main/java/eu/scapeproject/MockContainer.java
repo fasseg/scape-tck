@@ -151,9 +151,17 @@ public class MockContainer implements Container {
         String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
         try {
             byte[] blob = storage.getXML(representationIdMap.get(id), getVersionFromPath(req.getPath().getPath()));
-            IOUtils.write(blob, resp.getOutputStream());
-            resp.setCode(200);
-            resp.close();
+            IntellectualEntity ie=MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
+            if (ie.getRepresentations() != null){
+	            for (Representation r: ie.getRepresentations()){
+	            	if (r.getIdentifier().getValue().equals(id)){
+	            		MetsMarshaller.getInstance().serialize(r, resp.getOutputStream());
+	            		resp.setCode(200);
+	            		return;
+	            	}
+	            }
+            }
+            resp.setCode(404);
         } catch (FileNotFoundException e) {
             resp.setCode(404);
         } finally {

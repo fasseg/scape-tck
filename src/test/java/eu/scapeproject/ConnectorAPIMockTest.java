@@ -365,9 +365,9 @@ public class ConnectorAPIMockTest {
         HttpGet get = ConnectorAPIUtil.getInstance().createGetRepresentation(rep.getIdentifier().getValue());
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        IntellectualEntity entity = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
+        Representation fetched = MetsMarshaller.getInstance().deserialize(Representation.class, resp.getEntity().getContent());
         get.releaseConnection();
-        assertEquals(rep, entity.getRepresentations().get(0));
+        assertEquals(rep, fetched);
     }
 
     @Test
