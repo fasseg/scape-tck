@@ -23,6 +23,7 @@ public class ConnectorAPIUtil {
     private static final String REPRESENTATION_PATH = "/representation/";
     private static final String REPRESENTATION_SRU_PATH = "/sru/representations";
     private static final String FILE_PATH = "/file";
+    private static final String BITSTREAM_PATH = "/file";
     private static final String METADATA_PATH = "/metadata";
     private static final String LIFECYCLE_STATE_PATH = "/lifecycle";
 
@@ -108,4 +109,8 @@ public class ConnectorAPIUtil {
     public HttpGet createGetRepresentation(String id) {
         return new HttpGet(MOCK_URL + REPRESENTATION_PATH + "/" + id);
     }
+
+	public HttpGet createGetBitStream(String id) {
+        return new HttpGet(MOCK_URL + BITSTREAM_PATH + "/" + id);
+	}
 }

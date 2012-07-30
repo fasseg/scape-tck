@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import eu.scapeproject.dto.mets.MetsDMDSec;
 import eu.scapeproject.dto.mets.MetsDocument;
 import eu.scapeproject.dto.mets.MetsMDRef;
+import eu.scapeproject.model.BitStream;
 import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
@@ -47,6 +48,7 @@ public class MockContainer implements Container {
 	private final Map<String, String> metadataIdMap = new HashMap<String, String>();
 	private final Map<String, String> fileIdMap = new HashMap<String, String>();
 	private final Map<String, String> representationIdMap = new HashMap<String, String>();
+	private final Map<String, String> bitStreamIdMap = new HashMap<String, String>();
 	private final Map<Long, Object> asyncIngestMap = new HashMap<Long, Object>();
 	private final AsyncIngester asyncIngester = new AsyncIngester();
 	private Thread asyncIngesterThread = new Thread();
@@ -398,18 +400,43 @@ public class MockContainer implements Container {
 		}
 		// add the lifecycle state
 		entityBuilder.lifecycleState(new LifecycleState("ingested", State.INGESTED));
+
+		// save the identifiers to the according maps
+		// and check that all objects have identifiers
+		if (entity.getRepresentations() != null) {
+			List<Representation> representationsCopy=new ArrayList<Representation>();
+			for (Representation r : entity.getRepresentations()) {
+				Representation.Builder repCopyBuilder=new Representation.Builder(r)
+					.identifier((r.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : r.getIdentifier());
+				if (r.getFiles() != null){
+					repCopyBuilder.files(null);
+					for (File f : r.getFiles()) {
+						File.Builder fileCopyBuilder=new File.Builder(f)
+							.identifier((f.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : f.getIdentifier());
+						if (f.getBitStreams() != null){
+							fileCopyBuilder.bitStreams(null);
+							for (BitStream bs:f.getBitStreams()){
+								BitStream bsCopy=new BitStream.Builder(bs)
+									.identifier((bs.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : f.getIdentifier())
+									.build();
+								bitStreamIdMap.put(bs.getIdentifier().getValue(), entity.getIdentifier().getValue());
+								fileCopyBuilder.bitStream(bsCopy);
+							}
+						}
+						File fileCopy=fileCopyBuilder.build();
+						fileIdMap.put(fileCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
+						repCopyBuilder.file(fileCopy);
+					}
+				}
+				Representation repCopy=repCopyBuilder.build();
+				representationsCopy.add(repCopy);
+				representationIdMap.put(repCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
+			}
+			entityBuilder.representations(representationsCopy);
+		}
+
 		// now build the entity again with proper identifiers
 		entity = entityBuilder.build();
-
-		// save the file identifiers to the according map
-		if (entity.getRepresentations() != null) {
-			for (Representation r : entity.getRepresentations()) {
-				representationIdMap.put(r.getIdentifier().getValue(), entity.getIdentifier().getValue());
-				for (File f : r.getFiles()) {
-					fileIdMap.put(f.getIdentifier().getValue(), entity.getIdentifier().getValue());
-				}
-			}
-		}
 
 		// save the data in the storage backend
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();

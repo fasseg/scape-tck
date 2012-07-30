@@ -45,12 +45,12 @@ public class ModelUtil {
                 .build();
     }
 
-    public static final Representation createImageRepresentation(URI uri) {
+    public static final Representation createImageRepresentation(URI uri,List<BitStream> streams) {
         File file = new File.Builder()
                 .identifier(new Identifier("image-file-" + new Date().getTime()))
                 .uri(uri)
                 .technical(createNisoMetadata())
-                .bitStreams(new ArrayList<BitStream>())
+                .bitStreams(streams)
                 .build();
         return new Representation.Builder()
                 .identifier(new Identifier("image-representation-" + new Date().getTime()))
