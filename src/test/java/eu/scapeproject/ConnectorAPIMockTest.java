@@ -313,6 +313,34 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
+    public void testSearchRepresentation() throws Exception {
+        // ingest an entity to search in
+        IntellectualEntity.Builder ie = new IntellectualEntity.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .representations(Arrays.asList(ModelUtil.createTestRepresentation("test-representation-" + System.currentTimeMillis())))
+                .descriptive(new DCMetadata.Builder()
+                        .title("A test entity")
+                        .description("this should yield a hit!")
+                        .date(new Date())
+                        .language("en")
+                        .build());
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie.build());
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+        //and search for the ingested entity
+        HttpGet get=ConnectorAPIUtil.getInstance().createGetSRUrepresentation("test-rep");
+        resp=CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        IntellectualEntityCollection resultSet=(IntellectualEntityCollection) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        get.releaseConnection();
+        assertTrue(resultSet.getEntities().size() == 1);
+        IntellectualEntity searched=MetsMarshaller.getInstance().deserializeEntity(resultSet.getEntities().get(0));
+        assertEquals(ie.lifecycleState(new LifecycleState("", State.INGESTED)).build(), searched);
+    }
+
+    @Test
     public void testRetrieveMetadataRecord() throws Exception {
         IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
                 .create("http://example.com/void"))));

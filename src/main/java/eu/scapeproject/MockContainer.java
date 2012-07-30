@@ -46,6 +46,7 @@ public class MockContainer implements Container {
     private final LuceneIndex index;
     private final Map<String, String> metadataIdMap = new HashMap<String, String>();
     private final Map<String, String> fileIdMap = new HashMap<String, String>();
+    private final Map<String, String> representationIdMap = new HashMap<String, String>();
     private final Map<Long, Object> asyncIngestMap = new HashMap<Long, Object>();
     private final AsyncIngester asyncIngester = new AsyncIngester();
     private Thread asyncIngesterThread = new Thread();
@@ -128,6 +129,8 @@ public class MockContainer implements Container {
                 handleRetrieveVersionList(req, resp);
             } else if (contextPath.startsWith("/sru/entities")) {
                 handleEntitySRU(req, resp);
+            } else if (contextPath.startsWith("/sru/representations")) {
+                handleRepresentationSRU(req, resp);
             } else if (contextPath.startsWith("/file/")) {
                 handleRetrieveFile(req, resp);
             } else if (contextPath.startsWith("/lifecycle/")) {
@@ -147,6 +150,18 @@ public class MockContainer implements Container {
         List<MetsDocument> entities = new ArrayList<MetsDocument>();
         for (String id : index.searchEntity(term)) {
             byte[] xml = storage.getXML(id, 1);
+            entities.add((MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
+        }
+        IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
+        MetsMarshaller.getInstance().getJaxbMarshaller().marshal(coll, resp.getOutputStream());
+        resp.setCode(200);
+    }
+
+    private void handleRepresentationSRU(Request req, Response resp) throws Exception {
+        String term = req.getParameter("query");
+        List<MetsDocument> entities = new ArrayList<MetsDocument>();
+        for (String id : index.searchRepresentation(term)) {
+            byte[] xml = storage.getXML(representationIdMap.get(id), 1);
             entities.add((MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
         }
         IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
@@ -356,6 +371,7 @@ public class MockContainer implements Container {
         // save the file identifiers to the according map
         if (entity.getRepresentations() != null) {
             for (Representation r : entity.getRepresentations()) {
+                representationIdMap.put(r.getIdentifier().getValue(), entity.getIdentifier().getValue());
                 for (File f : r.getFiles()) {
                     fileIdMap.put(f.getIdentifier().getValue(), entity.getIdentifier().getValue());
                 }
