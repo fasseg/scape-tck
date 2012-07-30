@@ -33,9 +33,14 @@ public class ConnectorAPIMock implements Runnable {
 	}
 
 	public void run() {
+		LOG.info(" The following log output prefixes are used:");
+		LOG.info(" ## -> storage output");
+		LOG.info(" -- -> http server output");
+		LOG.info(" ++ -> indexer output");
 		try {
 			this.startServer();
 			this.running = true;
+			LOG.info("------------mock-server-up----------------");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

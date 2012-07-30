@@ -81,7 +81,7 @@ public class LuceneIndex {
             result.add(doc.get("id"));
         }
         searcher.close();
-        LOG.info("++ search yielded " + result.size() + " hits");
+        LOG.info("++ entity search yielded " + result.size() + " hits");
         return result;
     }
 
@@ -107,7 +107,6 @@ public class LuceneIndex {
     }
 
     public List<String> searchRepresentation(String term) throws Exception {
-        LOG.info(":: searching for " + term);
         IndexSearcher searcher = new IndexSearcher(IndexReader.open(representationDir));
         Query query = MultiFieldQueryParser.parse(
                 Version.LUCENE_36,
@@ -121,7 +120,7 @@ public class LuceneIndex {
             result.add(doc.get("id"));
         }
         searcher.close();
-        LOG.info(":: search yielded " + result.size() + " hits");
+        LOG.info("++ representation search yielded " + result.size() + " hits");
         return result;
     }
 
