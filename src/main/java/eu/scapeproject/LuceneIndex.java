@@ -35,7 +35,7 @@ public class LuceneIndex {
     private static final Logger LOG = LoggerFactory.getLogger(LuceneIndex.class);
 
     public void addEntity(IntellectualEntity entity) throws IOException {
-        LOG.info(":: Adding entity " + entity.getIdentifier().getValue());
+        LOG.info("++ adding entity " + entity.getIdentifier().getValue());
         Document doc = new Document();
         doc.add(new Field("id", entity.getIdentifier().getValue(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         DCMetadata dc = (DCMetadata) entity.getDescriptive();
@@ -57,7 +57,7 @@ public class LuceneIndex {
     }
 
     private void addRepresentation(Representation r) throws IOException{
-        LOG.info("adding representation " + r.getIdentifier() + " with title " + r.getTitle());
+        LOG.info("++ adding representation " + r.getIdentifier() + " with title " + r.getTitle());
         Document doc = new Document();
         doc.add(new Field("id", r.getIdentifier().getValue(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         if (r.getTitle() != null) {
@@ -68,7 +68,6 @@ public class LuceneIndex {
     }
 
     public List<String> searchEntity(String term) throws Exception {
-        LOG.info(":: searching for " + term);
         IndexSearcher searcher = new IndexSearcher(IndexReader.open(entityDir));
         Query query = MultiFieldQueryParser.parse(
                 Version.LUCENE_36,
@@ -82,7 +81,7 @@ public class LuceneIndex {
             result.add(doc.get("id"));
         }
         searcher.close();
-        LOG.info(":: search yielded " + result.size() + " hits");
+        LOG.info("++ search yielded " + result.size() + " hits");
         return result;
     }
 
