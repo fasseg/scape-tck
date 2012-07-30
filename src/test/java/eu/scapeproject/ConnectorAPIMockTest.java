@@ -36,7 +36,6 @@ import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.VersionList;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.mets.MetsMarshaller;
-import eu.scapeproject.model.util.MetsUtil;
 
 public class ConnectorAPIMockTest {
 

@@ -149,7 +149,7 @@ public class MockContainer implements Container {
         String term = req.getParameter("query");
         List<MetsDocument> entities = new ArrayList<MetsDocument>();
         for (String id : index.searchEntity(term)) {
-            byte[] xml = storage.getXML(id, 1);
+            byte[] xml = storage.getXML(id);
             entities.add((MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
         }
         IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
@@ -161,7 +161,7 @@ public class MockContainer implements Container {
         String term = req.getParameter("query");
         List<MetsDocument> entities = new ArrayList<MetsDocument>();
         for (String id : index.searchRepresentation(term)) {
-            byte[] xml = storage.getXML(representationIdMap.get(id), 1);
+            byte[] xml = storage.getXML(representationIdMap.get(id));
             entities.add((MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
         }
         IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
@@ -171,8 +171,9 @@ public class MockContainer implements Container {
 
     private void handleRetrieveLifecycleState(Request req, Response resp) throws Exception {
         String id = req.getPath().getPath().substring(11);
-        if (storage.exists(id, 1)) {
-            IntellectualEntity entity = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(storage.getXML(id, 1)));
+        Integer version=getVersionFromPath(req.getPath().getPath());
+        if (storage.exists(id, version)) {
+            IntellectualEntity entity = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(storage.getXML(id, version)));
             MetsMarshaller.getInstance().serialize(entity.getLifecycleState(), resp.getOutputStream());
             return;
         }
@@ -189,15 +190,14 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveFile(Request req, Response resp) throws Exception {
-        int version = 1;
         String fileId = req.getPath().getPath().substring(6);
         String entityIdid = fileIdMap.get(fileId);
-        boolean found = false;
+        byte[] blob = storage.getXML(entityIdid, getVersionFromPath(req.getPath().getPath()));
         if (entityIdid == null) {
             resp.setCode(404);
         } else {
             IntellectualEntity entity = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class,
-                    new ByteArrayInputStream(storage.getXML(entityIdid, 1)));
+                    new ByteArrayInputStream(blob));
             MetsMarshaller.getInstance().serialize(getFile(fileId, entity), resp.getOutputStream());
             resp.setCode(200);
         }
@@ -224,10 +224,10 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveMetadata(Request req, Response resp) throws Exception {
-        int version = getVersionFromPath(req.getPath().getPath().substring(10));
         String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
+        byte[] blob = storage.getXML(metadataIdMap.get(id), getVersionFromPath(req.getPath().getPath()));
+
         try {
-            byte[] blob = storage.getXML(metadataIdMap.get(id), version);
             IntellectualEntity e = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
             DCMetadata dc = (DCMetadata) e.getDescriptive();
             resp.set("Content-Type", "text/xml");
@@ -238,22 +238,11 @@ public class MockContainer implements Container {
         }
     }
 
-    private static int getVersionFromPath(String path) {
-
-        // check if the user requests a specific version
-        Matcher m = Pattern.compile("/\\d*/").matcher(path);
-        if (m.find()) {
-            return Integer.parseInt(path.substring(m.start() + 1, m.end() - 1));
-        } else {
-            return 1;
-        }
-    }
-
     private void handleRetrieveEntity(Request req, Response resp) throws Exception {
-        int version = getVersionFromPath(req.getPath().getPath().substring(8));
         String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
+
         try {
-            byte[] blob = storage.getXML(id, version);
+            byte[] blob = storage.getXML(id, getVersionFromPath(req.getPath().getPath()));
             if (req.getParameter("useReferences") != null && req.getParameter("useReferences").equalsIgnoreCase("true")) {
                 MetsDocument doc = (MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller()
                         .unmarshal(new ByteArrayInputStream(blob));
@@ -283,7 +272,7 @@ public class MockContainer implements Container {
         String[] uris = req.getContent().split("\\n");
         List<MetsDocument> docs = new ArrayList<MetsDocument>();
         for (String uri : uris) {
-            byte[] blob = storage.getXML(uri, 1);
+            byte[] blob = storage.getXML(uri);
             docs.add((MetsDocument) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(blob)));
         }
         IntellectualEntityCollection entities = new IntellectualEntityCollection(docs);
@@ -296,6 +285,16 @@ public class MockContainer implements Container {
             handleIngest(req, resp, 200);
         } finally {
             resp.close();
+        }
+    }
+    
+    private Integer getVersionFromPath(String path){
+        // check for a version parameter or use the latest version
+        Matcher m = Pattern.compile("/\\d*/").matcher(path);
+        if (m.find()) {
+            return Integer.parseInt(path.substring(m.start() + 1, m.end() - 1));
+        } else {
+            return null;
         }
     }
 
