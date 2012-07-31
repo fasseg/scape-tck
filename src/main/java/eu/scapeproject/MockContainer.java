@@ -203,6 +203,12 @@ public class MockContainer implements Container {
             entityBuilder.lifecycleState(new LifecycleState("", State.INGESTED));
             IntellectualEntity entity = entityBuilder.build();
 
+            // have to check for id existence and generate some if necessary
+            if (entity.getIdentifier() == null || entity.getIdentifier().getValue() == null) {
+                entityBuilder.identifier(new Identifier(UUID.randomUUID().toString()));
+                entity=entityBuilder.build();
+            }
+
             ingestEntity(entity);
             index.addEntity(entity);
 
@@ -450,10 +456,6 @@ public class MockContainer implements Container {
 
     private void ingestEntity(IntellectualEntity entity) throws Exception {
         IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(entity);
-        // have to check for id existence and generate some if necessary
-        if (entity.getIdentifier() == null) {
-            entityBuilder.identifier(new Identifier(UUID.randomUUID().toString()));
-        }
         if (entity.getDescriptive() == null || entity.getDescriptive().getId() == null) {
             DCMetadata.Builder dc = new DCMetadata.Builder((DCMetadata) entity.getDescriptive())
                     .identifier(new Identifier(UUID.randomUUID().toString()));

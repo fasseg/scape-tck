@@ -178,6 +178,27 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
+    public void testIngestMinimalIntellectualEntityWithoutId() throws Exception {
+        IntellectualEntity ie = new IntellectualEntity.Builder()
+                .descriptive(new DCMetadata.Builder()
+                        .title("A test entity")
+                        .date(new Date())
+                        .language("en")
+                        .build())
+                .build();
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie);
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        String id = IOUtils.toString(resp.getEntity().getContent());
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(id);
+        resp = CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        get.releaseConnection();
+    }
+
+    @Test
     public void testIngestMinimalIntellectualEntityAsynchronously() throws Exception {
         IntellectualEntity ie = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
@@ -245,7 +266,8 @@ public class ConnectorAPIMockTest {
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
         BitStream fetched = SCAPEMarshaller.getInstance().deserialize(BitStream.class, resp.getEntity().getContent());
         get.releaseConnection();
-        assertEquals(entity.getRepresentations().get(0).getFiles().get(0).getBitStreams().get(0), fetched); }
+        assertEquals(entity.getRepresentations().get(0).getFiles().get(0).getBitStreams().get(0), fetched);
+    }
 
     @Test
     public void testRetrieveFile() throws Exception {
