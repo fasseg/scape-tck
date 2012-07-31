@@ -17,15 +17,16 @@ import org.slf4j.LoggerFactory;
 public class ConnectorAPIMock implements Runnable {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(ConnectorAPIMock.class);
-	private final int port = 8783;
+	private final int port;
 	private final String path;
 	private SocketConnection conn;
 	private volatile boolean running = false;
 	private MockContainer container;
 	private long startupMem;
 
-	public ConnectorAPIMock() {
+	public ConnectorAPIMock(int port) {
 		this.path = System.getProperty("java.io.tmpdir") + "/scape-tck-" + System.getProperty("user.name");
+		this.port = port;
 	}
 
 	public void close() throws Exception {
