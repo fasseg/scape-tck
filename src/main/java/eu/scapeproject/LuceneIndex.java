@@ -47,7 +47,7 @@ public class LuceneIndex {
                 doc.add(new Field("description", dc.getDescription().get(0), Field.Store.YES, Field.Index.ANALYZED));
             }
         }
-        if (entity.getRepresentations() != null){
+        if (entity.getRepresentations() != null) {
             for (Representation r : entity.getRepresentations()) {
                 addRepresentation(r);
             }
@@ -56,7 +56,7 @@ public class LuceneIndex {
         getEntityWriter().commit();
     }
 
-    private void addRepresentation(Representation r) throws IOException{
+    public void addRepresentation(Representation r) throws IOException {
         LOG.info("adding representation " + r.getIdentifier() + " with title " + r.getTitle());
         Document doc = new Document();
         doc.add(new Field("id", r.getIdentifier().getValue(), Field.Store.YES, Field.Index.NOT_ANALYZED));
@@ -101,8 +101,12 @@ public class LuceneIndex {
     }
 
     public void close() throws IOException {
-        this.entityWriter.close();
-        this.representationWriter.close();
+        if (this.entityWriter != null) {
+            this.entityWriter.close();
+        }
+        if (this.representationWriter != null){
+            this.representationWriter.close();
+        }
         this.entityDir.close();
         this.representationDir.close();
     }

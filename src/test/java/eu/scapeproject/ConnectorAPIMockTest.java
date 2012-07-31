@@ -62,47 +62,7 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
-    public void testInvalidIntellectualEntity() throws Exception {
-        HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity("non-existant");
-        HttpResponse resp = CLIENT.execute(get);
-        assertTrue(resp.getStatusLine().getStatusCode() == 404);
-        get.releaseConnection();
-    }
-
-    @Test
-    public void testGetVersionList() throws Exception {
-        IntellectualEntity version1 = new IntellectualEntity.Builder()
-                .identifier(new Identifier(UUID.randomUUID().toString()))
-                .descriptive(new DCMetadata.Builder()
-                        .title("A test entity")
-                        .date(new Date())
-                        .language("en")
-                        .build())
-                .build();
-        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(version1);
-        HttpResponse resp = CLIENT.execute(post);
-        post.releaseConnection();
-        assertTrue(resp.getStatusLine().getStatusCode() == 201);
-
-        IntellectualEntity version2 = new IntellectualEntity.Builder(version1)
-                .build();
-        HttpPut put = ConnectorAPIUtil.getInstance().createPutEntity(version1);
-        resp = CLIENT.execute(put);
-        put.releaseConnection();
-        assertTrue(resp.getStatusLine().getStatusCode() == 200);
-
-        HttpGet get = ConnectorAPIUtil.getInstance().createGetVersionList(version1.getIdentifier().getValue());
-        resp = CLIENT.execute(get);
-        VersionList versions = (VersionList) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
-        get.releaseConnection();
-        assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        assertTrue(versions.getVersionIdentifiers().size() == 2);
-        assertTrue(versions.getEntityId().equals(version1.getIdentifier().getValue()));
-
-    }
-
-    @Test
-    public void testgetIntellectualEntityList() throws Exception {
+    public void testGetIntellectualEntityList() throws Exception {
         List<String> ids = new ArrayList<String>();
         // ingest entity 1
         IntellectualEntity entity1 = new IntellectualEntity.Builder()
@@ -138,7 +98,7 @@ public class ConnectorAPIMockTest {
         for (String id : ids) {
             uriList.append(id + "\n");
         }
-        post = ConnectorAPIUtil.createGetUriList(uriList.toString());
+        post = ConnectorAPIUtil.getInstance().createGetUriList(uriList.toString());
         resp = CLIENT.execute(post);
         // IOUtils.copy(resp.getEntity().getContent(), System.out);
         post.releaseConnection();
@@ -146,7 +106,7 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
-    public void testUpdateIntellectualEntity() throws Exception {
+    public void testGetVersionList() throws Exception {
         IntellectualEntity version1 = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
                 .descriptive(new DCMetadata.Builder()
@@ -159,12 +119,39 @@ public class ConnectorAPIMockTest {
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
         IntellectualEntity version2 = new IntellectualEntity.Builder(version1)
                 .build();
         HttpPut put = ConnectorAPIUtil.getInstance().createPutEntity(version1);
         resp = CLIENT.execute(put);
         put.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
+
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetVersionList(version1.getIdentifier().getValue());
+        resp = CLIENT.execute(get);
+        VersionList versions = (VersionList) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        get.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        assertTrue(versions.getVersionIdentifiers().size() == 2);
+        assertTrue(versions.getEntityId().equals(version1.getIdentifier().getValue()));
+
+    }
+
+    @Test
+    public void testIngestImage() throws Exception {
+        IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
+                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
+        resp = CLIENT.execute(get);
+        IntellectualEntity fetched = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        get.releaseConnection();
+        assertTrue(fetched.getLifecycleState().getState().equals(State.INGESTED));
     }
 
     @Test
@@ -227,6 +214,31 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
+    public void testInvalidIntellectualEntity() throws Exception {
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity("non-existant");
+        HttpResponse resp = CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 404);
+        get.releaseConnection();
+    }
+
+    @Test
+    public void testRetrieveFile() throws Exception {
+        IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
+                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetFile(entity.getRepresentations().get(0).getFiles().iterator().next());
+        resp = CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        String xml = IOUtils.toString(resp.getEntity().getContent());
+        assertTrue(xml.length() > 10); // check for some content
+        get.releaseConnection();
+    }
+
+    @Test
     public void testRetrieveIntellectualEntityWithRefs() throws Exception {
         IntellectualEntity ie = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
@@ -252,37 +264,57 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
-    public void testIngestImage() throws Exception {
+    public void testRetrieveMetadataRecord() throws Exception {
         IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
-                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
+                .create("http://example.com/void"))));
+        // post an entity without identifiers
         HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
-        HttpResponse resp = CLIENT.execute(post);
+        CLIENT.execute(post);
         post.releaseConnection();
-        assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
+        // fetch the entity to learn the generated idenifiers
         HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
-        resp = CLIENT.execute(get);
+        HttpResponse resp = CLIENT.execute(get);
         IntellectualEntity fetched = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
-        assertTrue(resp.getStatusLine().getStatusCode() == 200);
         get.releaseConnection();
-        assertTrue(fetched.getLifecycleState().getState().equals(State.INGESTED));
+
+        // and try to fetch and validate the fecthed entity's metadata
+        get = ConnectorAPIUtil.getInstance().createGetMetadata(fetched.getDescriptive().getId());
+        resp = CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        IOUtils.copy(resp.getEntity().getContent(), bos);
+        get.releaseConnection();
+        DCMetadata dc = MetsMarshaller.getInstance().deserialize(DCMetadata.class, new ByteArrayInputStream(bos.toByteArray()));
+        assertEquals(entity.getDescriptive(), dc);
     }
 
     @Test
-    public void testRetrieveFile() throws Exception {
-        IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
-                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
-        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
+    public void testRetrieveRepresentation() throws Exception {
+        Representation rep = ModelUtil.createTestRepresentation("test-representation-" + System.currentTimeMillis());
+
+        // ingest the entity with it's representation for later fetching
+        IntellectualEntity.Builder ie = new IntellectualEntity.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .representations(Arrays.asList(rep))
+                .descriptive(new DCMetadata.Builder()
+                        .title("entity with representation")
+                        .description("description of entity")
+                        .date(new Date())
+                        .language("en")
+                        .build());
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie.build());
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
-        HttpGet get = ConnectorAPIUtil.getInstance().createGetFile(entity.getRepresentations().get(0).getFiles().iterator().next());
+        // and fetch the ingested representation
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetRepresentation(rep.getIdentifier().getValue());
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        String xml = IOUtils.toString(resp.getEntity().getContent());
-        assertTrue(xml.length() > 10); // check for some content
+        IntellectualEntity entity = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
         get.releaseConnection();
+        assertEquals(rep, entity.getRepresentations().get(0));
     }
 
     @Test
@@ -318,10 +350,10 @@ public class ConnectorAPIMockTest {
         // ingest an entity to search in
         IntellectualEntity.Builder ie = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
-                .representations(Arrays.asList(ModelUtil.createTestRepresentation("test-representation-" + System.currentTimeMillis())))
+                .representations(Arrays.asList(ModelUtil.createTestRepresentation("testingestrepresentation-" + System.currentTimeMillis())))
                 .descriptive(new DCMetadata.Builder()
-                        .title("A test entity")
-                        .description("this should yield a hit!")
+                        .title("entity for testing representations")
+                        .description("purely for testing purposes")
                         .date(new Date())
                         .language("en")
                         .build());
@@ -331,7 +363,7 @@ public class ConnectorAPIMockTest {
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
         // and search for the ingested entity
-        HttpGet get = ConnectorAPIUtil.getInstance().createGetSRUrepresentation("test-rep");
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetSRUrepresentation("testingestrepresentation");
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
         IntellectualEntityCollection resultSet = (IntellectualEntityCollection) MetsMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(
@@ -343,56 +375,96 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
-    public void testRetrieveRepresentation() throws Exception {
-        Representation rep = ModelUtil.createTestRepresentation("test-representation-" + System.currentTimeMillis());
-
-        // ingest the entity with it's representation for later fetching
-        IntellectualEntity.Builder ie = new IntellectualEntity.Builder()
+    public void testUpdateIntellectualEntity() throws Exception {
+        IntellectualEntity version1 = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
-                .representations(Arrays.asList(rep))
                 .descriptive(new DCMetadata.Builder()
                         .title("A test entity")
-                        .description("this should yield a hit!")
                         .date(new Date())
                         .language("en")
-                        .build());
-        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(ie.build());
+                        .build())
+                .build();
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(version1);
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+        IntellectualEntity version2 = new IntellectualEntity.Builder(version1)
+                .build();
+        HttpPut put = ConnectorAPIUtil.getInstance().createPutEntity(version1);
+        resp = CLIENT.execute(put);
+        put.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+    }
+
+    @Test
+    public void testUpdateIntellectualRepresentation() throws Exception {
+        Representation oldRep = ModelUtil.createTestRepresentation("ye olde representation");
+        // create an intellectual entity with a representation
+        IntellectualEntity oldVersion = new IntellectualEntity.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .representations(Arrays.asList(oldRep))
+                .descriptive(new DCMetadata.Builder()
+                        .title("A test entity")
+                        .date(new Date())
+                        .language("en")
+                        .build())
+                .build();
+        // post it for persisting to the Mock
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(oldVersion);
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
-        // and fetch the ingested representation
-        HttpGet get = ConnectorAPIUtil.getInstance().createGetRepresentation(rep.getIdentifier().getValue());
-        resp = CLIENT.execute(get);
+        // create an an updated representation send a post to persist the
+        // changes
+        Representation newRep = new Representation.Builder(oldRep)
+                .title("The Brand-New Representation")
+                .build();
+
+        HttpPut put = ConnectorAPIUtil.getInstance().createPutRepresentation(newRep);
+        resp = CLIENT.execute(put);
+        put.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        IntellectualEntity entity = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
+
+        // get the update entity and check that the title has changed
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(oldVersion.getIdentifier().getValue());
+        resp = CLIENT.execute(get);
+        IntellectualEntity newVersion = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
+        assertEquals(newRep, newVersion.getRepresentations().get(0));
         get.releaseConnection();
-        assertEquals(rep, entity.getRepresentations().get(0));
     }
 
     @Test
-    public void testRetrieveMetadataRecord() throws Exception {
-        IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
-                .create("http://example.com/void"))));
-        // post an entity without identifiers
-        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
-        CLIENT.execute(post);
+    public void testUpdateMetadata() throws Exception {
+        DCMetadata.Builder dc = new DCMetadata.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .title("Ye olde dc record")
+                .date(new Date())
+                .language("en");
+        IntellectualEntity oldVersion = new IntellectualEntity.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .descriptive(dc.build())
+                .build();
+        // post it for persisting to the Mock
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(oldVersion);
+        HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
-        // fetch the entity to learn the generated idenifiers
-        HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(entity.getIdentifier().getValue());
-        HttpResponse resp = CLIENT.execute(get);
-        IntellectualEntity fetched = MetsMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
-        get.releaseConnection();
-
-        // and try to fetch and validate the fecthed entity's metadata
-        get = ConnectorAPIUtil.getInstance().createGetMetadata(fetched.getDescriptive().getId());
-        resp = CLIENT.execute(get);
+        //update the metadata in order to check the PUT method
+        dc.title("The Brand-New DC record");
+        HttpPut put=ConnectorAPIUtil.getInstance().createPutMetadata(dc.build());
+        resp=CLIENT.execute(put);
+        put.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        IOUtils.copy(resp.getEntity().getContent(), bos);
+        
+        // fetch the entity and check for the updated metadata record
+        HttpGet get=ConnectorAPIUtil.getInstance().createGetEntity(oldVersion.getIdentifier().getValue());
+        resp=CLIENT.execute(get);
+        IntellectualEntity newVersion=MetsMarshaller.getInstance().deserialize(IntellectualEntity.class,resp.getEntity().getContent());
         get.releaseConnection();
-        DCMetadata dc = MetsMarshaller.getInstance().deserialize(DCMetadata.class, new ByteArrayInputStream(bos.toByteArray()));
-        assertEquals(entity.getDescriptive(), dc);
+        assertEquals(newVersion.getDescriptive(),dc.build());
+        
     }
+
 }

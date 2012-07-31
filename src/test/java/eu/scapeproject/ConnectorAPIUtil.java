@@ -8,9 +8,12 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 
+import eu.scapeproject.dto.mets.MetsMetadata;
 import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
+import eu.scapeproject.model.Representation;
+import eu.scapeproject.model.metadata.dc.DCMetadata.Builder;
 import eu.scapeproject.model.mets.MetsMarshaller;
 
 public class ConnectorAPIUtil {
@@ -93,7 +96,7 @@ public class ConnectorAPIUtil {
         return new HttpGet(MOCK_URL + ENTITY_SRU_PATH + "?operation=searchRetrieve&query=" + term + "&recordPacking=xml&recordSchema=entitylist.xsd");
     }
 
-    public static HttpPost createGetUriList(String string) {
+    public HttpPost createGetUriList(String string) {
         HttpPost post = new HttpPost(MOCK_URL + ENTITY_LIST_PATH);
         post.setEntity(new ByteArrayEntity(string.getBytes()));
         return post;
@@ -101,11 +104,27 @@ public class ConnectorAPIUtil {
 
     public HttpGet createGetSRUrepresentation(String term) {
         // TODO Schema for representations
-        // TODO: use CQL
+        // TODO: use CQL, not only the term
         return new HttpGet(MOCK_URL + REPRESENTATION_SRU_PATH + "?operation=searchRetrieve&query=" + term + "&recordPacking=xml&recordSchema=entitylist.xsd");
     }
 
     public HttpGet createGetRepresentation(String id) {
         return new HttpGet(MOCK_URL + REPRESENTATION_PATH + "/" + id);
+    }
+
+    public HttpPut createPutRepresentation(Representation newRep) throws Exception {
+        HttpPut put=new HttpPut(MOCK_URL + REPRESENTATION_PATH + "/" + newRep.getIdentifier().getValue());
+        ByteArrayOutputStream bos=new ByteArrayOutputStream();
+        MetsMarshaller.getInstance().serialize(newRep, bos);
+        put.setEntity(new ByteArrayEntity(bos.toByteArray()));
+        return put;
+    }
+
+    public HttpPut createPutMetadata(MetsMetadata data) throws Exception{
+        HttpPut put=new HttpPut(MOCK_URL + METADATA_PATH + "/" + data.getId());
+        ByteArrayOutputStream bos=new ByteArrayOutputStream();
+        MetsMarshaller.getInstance().serialize(data, bos);
+        put.setEntity(new ByteArrayEntity(bos.toByteArray()));
+        return put;
     }
 }

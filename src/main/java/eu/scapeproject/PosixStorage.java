@@ -108,7 +108,7 @@ public class PosixStorage {
         return getXML(id,null);
     }
 
-    private int getLatestVersionNumber(String id) throws IOException {
+    public int getLatestVersionNumber(String id) throws IOException {
         int version = 1;
         File dir = getEntityDir(id);
         for (String name : dir.list()) {
