@@ -13,12 +13,16 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PosixStorage {
 
     private final File xmlDirectory;
     private final File datastreamDirectory;
     private final Pattern versionPattern = Pattern.compile("version\\-\\d*\\.xml");
+    
+	private static final Logger LOG = LoggerFactory.getLogger(PosixStorage.class);
 
     public PosixStorage(String directory) {
         File parent = new File(directory);

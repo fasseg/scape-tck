@@ -28,6 +28,7 @@ import eu.scapeproject.dto.mets.MetsDMDSec;
 import eu.scapeproject.dto.mets.MetsDocument;
 import eu.scapeproject.dto.mets.MetsMDRef;
 import eu.scapeproject.dto.mets.MetsMetadata;
+import eu.scapeproject.model.BitStream;
 import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
@@ -43,6 +44,7 @@ import eu.scapeproject.model.util.MetsUtil;
 
 public class MockContainer implements Container {
 
+
     private static final Logger LOG = LoggerFactory.getLogger(MockContainer.class);
     
     private final PosixStorage storage;
@@ -50,6 +52,7 @@ public class MockContainer implements Container {
     private final int asyncIngestDelay = 1000;
     private final Map<String, String> metadataIdMap = new HashMap<String, String>();
     private final Map<String, String> fileIdMap = new HashMap<String, String>();
+    private final Map<String, String> bitstreamIdMap = new HashMap<String, String>();
     private final Map<String, String> representationIdMap = new HashMap<String, String>();
     private final Map<Long, Object> asyncIngestMap = new HashMap<Long, Object>();
     private final AsyncIngester asyncIngester = new AsyncIngester();
@@ -68,6 +71,21 @@ public class MockContainer implements Container {
         this.asyncIngesterThread.join();
         this.purgeStorage();
         this.index.close();
+    }
+
+    private Object getBitStream(String bsId, IntellectualEntity entity) {
+        for (Representation r : entity.getRepresentations()) {
+            for (File f : r.getFiles()) {
+                if (f.getBitStreams() != null){
+                    for (BitStream bs: f.getBitStreams()){
+                        if (bs.getIdentifier().getValue().equals(bsId)) {
+                            return bs;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private File getFile(String id, IntellectualEntity entity) {
@@ -164,6 +182,8 @@ public class MockContainer implements Container {
                 handleRepresentationSRU(req, resp);
             } else if (contextPath.startsWith("/file/")) {
                 handleRetrieveFile(req, resp);
+            } else if (contextPath.startsWith("/bitstream/")) {
+                handleRetrieveBitStream(req, resp);
             } else if (contextPath.startsWith("/lifecycle/")) {
                 handleRetrieveLifecycleState(req, resp);
             } else {
@@ -247,6 +267,20 @@ public class MockContainer implements Container {
         IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
         SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(coll, resp.getOutputStream());
         resp.setCode(200);
+    }
+
+    private void handleRetrieveBitStream(Request req, Response resp) throws Exception {
+        String bsId = req.getPath().getPath().substring(11);
+        String entityId = bitstreamIdMap.get(bsId);
+        if (entityId == null) {
+            resp.setCode(404);
+        } else {
+            byte[] blob = storage.getXML(entityId, getVersionFromPath(req.getPath().getPath()));
+            IntellectualEntity entity = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class,
+                    new ByteArrayInputStream(blob));
+            SCAPEMarshaller.getInstance().serialize(getBitStream(bsId, entity), resp.getOutputStream());
+            resp.setCode(200);
+        }
     }
 
     private void handleRetrieveEntity(Request req, Response resp) throws Exception {
@@ -427,19 +461,43 @@ public class MockContainer implements Container {
         }
         // add the lifecycle state
         entityBuilder.lifecycleState(new LifecycleState("ingested", State.INGESTED));
+
+        // save the identifiers to the according maps
+        // and check that all objects have identifiers
+        if (entity.getRepresentations() != null) {
+            List<Representation> representationsCopy=new ArrayList<Representation>();
+            for (Representation r : entity.getRepresentations()) {
+                Representation.Builder repCopyBuilder=new Representation.Builder(r)
+                    .identifier((r.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : r.getIdentifier());
+                if (r.getFiles() != null){
+                    repCopyBuilder.files(null);
+                    for (File f : r.getFiles()) {
+                        File.Builder fileCopyBuilder=new File.Builder(f)
+                            .identifier((f.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : f.getIdentifier());
+                        if (f.getBitStreams() != null){
+                            fileCopyBuilder.bitStreams(null);
+                            for (BitStream bs:f.getBitStreams()){
+                                BitStream bsCopy=new BitStream.Builder(bs)
+                                    .identifier((bs.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : bs.getIdentifier())
+                                    .build();
+                                bitstreamIdMap.put(bsCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
+                                fileCopyBuilder.bitStream(bsCopy);
+                            }
+                        }
+                        File fileCopy=fileCopyBuilder.build();
+                        fileIdMap.put(fileCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
+                        repCopyBuilder.file(fileCopy);
+                    }
+                }
+                Representation repCopy=repCopyBuilder.build();
+                representationsCopy.add(repCopy);
+                representationIdMap.put(repCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
+            }
+            entityBuilder.representations(representationsCopy);
+        }
+
         // now build the entity again with proper identifiers
         entity = entityBuilder.build();
-        LOG.debug("writing entity " + entity.getIdentifier().getValue());
-
-        // save the file identifiers to the according map
-        if (entity.getRepresentations() != null) {
-            for (Representation r : entity.getRepresentations()) {
-                representationIdMap.put(r.getIdentifier().getValue(), entity.getIdentifier().getValue());
-                for (File f : r.getFiles()) {
-                    fileIdMap.put(f.getIdentifier().getValue(), entity.getIdentifier().getValue());
-                }
-            }
-        }
 
         // save the data in the storage backend
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -449,7 +507,6 @@ public class MockContainer implements Container {
             version = storage.getNewVersionNumber(entity.getIdentifier().getValue());
         }
         storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), version, false);
-        LOG.debug("wrote new file " + entity.getIdentifier().getValue());
 
         // update the hashmap with the metadata references to the entities
         metadataIdMap.put(entity.getDescriptive().getId(), entity.getIdentifier().getValue());
@@ -501,5 +558,4 @@ public class MockContainer implements Container {
             stop = true;
         };
     }
-
 }

@@ -28,6 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.scapeproject.dto.mets.MetsDocument;
+import eu.scapeproject.model.BitStream;
+import eu.scapeproject.model.BitStream.Type;
+import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.IntellectualEntityCollection;
@@ -139,7 +142,7 @@ public class ConnectorAPIMockTest {
     @Test
     public void testIngestImage() throws Exception {
         IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
-                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
+                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"), null)));
         HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
@@ -221,9 +224,33 @@ public class ConnectorAPIMockTest {
     }
 
     @Test
+    public void testRetrieveBitStream() throws Exception {
+        BitStream bs = new BitStream.Builder()
+                .type(Type.STREAM)
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .build();
+
+        IntellectualEntity entity = ModelUtil
+                .createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
+                        .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"),
+                        Arrays.asList(bs))));
+        HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
+        HttpResponse resp = CLIENT.execute(post);
+        post.releaseConnection();
+        assertTrue(resp.getStatusLine().getStatusCode() == 201);
+
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetBitStream(
+                entity.getRepresentations().get(0).getFiles().get(0).getBitStreams().get(0).getIdentifier().getValue());
+        resp = CLIENT.execute(get);
+        assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        BitStream fetched = SCAPEMarshaller.getInstance().deserialize(BitStream.class, resp.getEntity().getContent());
+        get.releaseConnection();
+        assertEquals(entity.getRepresentations().get(0).getFiles().get(0).getBitStreams().get(0), fetched); }
+
+    @Test
     public void testRetrieveFile() throws Exception {
         IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
-                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"))));
+                .create("https://a248.e.akamai.net/assets.github.com/images/modules/about_page/octocat.png?1315937507"), null)));
         HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
@@ -265,7 +292,7 @@ public class ConnectorAPIMockTest {
     @Test
     public void testRetrieveMetadataRecord() throws Exception {
         IntellectualEntity entity = ModelUtil.createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
-                .create("http://example.com/void"))));
+                .create("http://example.com/void"), null)));
         // post an entity without identifiers
         HttpPost post = ConnectorAPIUtil.getInstance().createPostEntity(entity);
         CLIENT.execute(post);
@@ -450,20 +477,20 @@ public class ConnectorAPIMockTest {
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
-        //update the metadata in order to check the PUT method
+        // update the metadata in order to check the PUT method
         dc.title("The Brand-New DC record");
-        HttpPut put=ConnectorAPIUtil.getInstance().createPutMetadata(dc.build());
-        resp=CLIENT.execute(put);
+        HttpPut put = ConnectorAPIUtil.getInstance().createPutMetadata(dc.build());
+        resp = CLIENT.execute(put);
         put.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        
+
         // fetch the entity and check for the updated metadata record
-        HttpGet get=ConnectorAPIUtil.getInstance().createGetEntity(oldVersion.getIdentifier().getValue());
-        resp=CLIENT.execute(get);
-        IntellectualEntity newVersion=SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class,resp.getEntity().getContent());
+        HttpGet get = ConnectorAPIUtil.getInstance().createGetEntity(oldVersion.getIdentifier().getValue());
+        resp = CLIENT.execute(get);
+        IntellectualEntity newVersion = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
         get.releaseConnection();
-        assertEquals(newVersion.getDescriptive(),dc.build());
-        
+        assertEquals(newVersion.getDescriptive(), dc.build());
+
     }
 
 }
