@@ -28,8 +28,16 @@ public class ConnectorAPIMock implements Runnable {
 		this.path = System.getProperty("java.io.tmpdir") + "/scape-tck-" + System.getProperty("user.name");
 	}
 
+	public void close() throws Exception {
+		this.container.close();
+	}
+
 	public int getPort() {
 		return this.port;
+	}
+
+	public synchronized boolean isRunning() {
+		return this.running;
 	}
 
 	public void run() {
@@ -39,6 +47,14 @@ public class ConnectorAPIMock implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void startServer() throws IOException {
+		this.container = new MockContainer(this.path, this.port);
+		this.conn = new SocketConnection(this.container);
+		this.startupMem = Runtime.getRuntime().totalMemory();
+		this.container.start();
+		this.conn.connect(new InetSocketAddress(this.port));
 	}
 
 	public void stop() throws IOException {
@@ -51,21 +67,5 @@ public class ConnectorAPIMock implements Runnable {
 		LOG.debug(">> total used:\t" + fmt.format((double) Runtime.getRuntime().totalMemory() / (1024d * 1024d)) + " MB ");
 		LOG.debug(">> after start:\t" + fmt.format(startupMem / (1024d * 1024d)) + " MB");
 		LOG.debug(">> growth:\t\t" + fmt.format((Runtime.getRuntime().totalMemory() - startupMem)/(1024d*1024d)) + " MB");
-	}
-
-	private void startServer() throws IOException {
-		this.container = new MockContainer(this.path, this.port);
-		this.conn = new SocketConnection(this.container);
-		this.startupMem = Runtime.getRuntime().totalMemory();
-		this.container.start();
-		this.conn.connect(new InetSocketAddress(this.port));
-	}
-
-	public synchronized boolean isRunning() {
-		return this.running;
-	}
-
-	public void close() throws Exception {
-		this.container.close();
 	}
 }

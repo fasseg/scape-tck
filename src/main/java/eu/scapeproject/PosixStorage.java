@@ -11,25 +11,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-
-import eu.scapeproject.dto.mets.MetsDocument;
-import eu.scapeproject.model.IntellectualEntity;
-import eu.scapeproject.model.jaxb.MetsNamespacePrefixMapper;
-import eu.scapeproject.model.metadata.audiomd.AudioMDMetadata;
-import eu.scapeproject.model.metadata.dc.DCMetadata;
-import eu.scapeproject.model.metadata.fits.FitsMetadata;
-import eu.scapeproject.model.metadata.mix.NisoMixMetadata;
-import eu.scapeproject.model.metadata.premis.PremisProvenanceMetadata;
-import eu.scapeproject.model.metadata.premis.PremisRightsMetadata;
-import eu.scapeproject.model.metadata.textmd.TextMDMetadata;
-import eu.scapeproject.model.metadata.videomd.VideoMDMetadata;
-import eu.scapeproject.model.mets.MetsMarshaller;
 
 public class PosixStorage {
 
@@ -63,6 +46,75 @@ public class PosixStorage {
         }
     }
 
+    public boolean exists(String id, Integer versionNumber) throws IOException{
+        if (versionNumber == null){
+            versionNumber=getLatestVersionNumber(id);
+        }
+        try {
+            return new File(getEntityDir(id), "version-" + versionNumber + ".xml").exists();
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private File getEntityDir(String id) throws IOException {
+        File f = new File(xmlDirectory, id);
+        if (f.exists() && !f.isDirectory()) {
+            throw new IOException("not a directory " + f.getAbsolutePath());
+        }
+        if (!f.exists()) {
+            f.mkdir();
+        }
+        return f;
+    }
+
+    public int getLatestVersionNumber(String id) throws IOException {
+        int version = 1;
+        File dir = getEntityDir(id);
+        for (String name : dir.list()) {
+            Matcher m = versionPattern.matcher(name);
+            if (m.find()) {
+                version = Math.max(version, Integer.parseInt(name.substring(m.start() + 8, m.end() - 4)));
+            }
+        }
+        return version;
+    }
+
+    public int getNewVersionNumber(String id) throws IOException {
+        return getLatestVersionNumber(id) + 1;
+    }
+
+    public List<String> getVersionList(String id) throws IOException {
+        List<String> versionList = new ArrayList<String>();
+        File dir = getEntityDir(id);
+        for (String name : dir.list()) {
+            Matcher m = versionPattern.matcher(name);
+            if (m.find()) {
+                versionList.add(name.substring(m.start() + 8, m.end() - 4));
+            }
+        }
+        return versionList;
+    }
+
+    public byte[] getXML(String id) throws Exception {
+        return getXML(id,null);
+    }
+
+    public byte[] getXML(String id, Integer version) throws Exception {
+        if (version == null){
+            version=getLatestVersionNumber(id);
+        }
+        final File entityDir = new File(xmlDirectory, id);
+        if (!entityDir.exists() || !entityDir.canRead() || !entityDir.isDirectory()) {
+            throw new FileNotFoundException("Unable to open dir " + entityDir.getAbsolutePath());
+        }
+        final File f = new File(entityDir, "version-" + version + ".xml");
+        if (!f.exists() || !f.canRead()) {
+            throw new FileNotFoundException("Unable to open file " + f.getAbsolutePath());
+        }
+        return IOUtils.toByteArray(new FileInputStream(f));
+    }
+
     public void purge() throws Exception {
         FileUtils.deleteDirectory(xmlDirectory);
         FileUtils.deleteDirectory(datastreamDirectory);
@@ -87,74 +139,5 @@ public class PosixStorage {
         } finally {
             IOUtils.closeQuietly(out);
         }
-    }
-
-    public byte[] getXML(String id, Integer version) throws Exception {
-        if (version == null){
-            version=getLatestVersionNumber(id);
-        }
-        final File entityDir = new File(xmlDirectory, id);
-        if (!entityDir.exists() || !entityDir.canRead() || !entityDir.isDirectory()) {
-            throw new FileNotFoundException("Unable to open dir " + entityDir.getAbsolutePath());
-        }
-        final File f = new File(entityDir, "version-" + version + ".xml");
-        if (!f.exists() || !f.canRead()) {
-            throw new FileNotFoundException("Unable to open file " + f.getAbsolutePath());
-        }
-        return IOUtils.toByteArray(new FileInputStream(f));
-    }
-
-    public byte[] getXML(String id) throws Exception {
-        return getXML(id,null);
-    }
-
-    public int getLatestVersionNumber(String id) throws IOException {
-        int version = 1;
-        File dir = getEntityDir(id);
-        for (String name : dir.list()) {
-            Matcher m = versionPattern.matcher(name);
-            if (m.find()) {
-                version = Math.max(version, Integer.parseInt(name.substring(m.start() + 8, m.end() - 4)));
-            }
-        }
-        return version;
-    }
-
-    public boolean exists(String id, Integer versionNumber) throws IOException{
-        if (versionNumber == null){
-            versionNumber=getLatestVersionNumber(id);
-        }
-        try {
-            return new File(getEntityDir(id), "version-" + versionNumber + ".xml").exists();
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    public int getNewVersionNumber(String id) throws IOException {
-        return getLatestVersionNumber(id) + 1;
-    }
-
-    private File getEntityDir(String id) throws IOException {
-        File f = new File(xmlDirectory, id);
-        if (f.exists() && !f.isDirectory()) {
-            throw new IOException("not a directory " + f.getAbsolutePath());
-        }
-        if (!f.exists()) {
-            f.mkdir();
-        }
-        return f;
-    }
-
-    public List<String> getVersionList(String id) throws IOException {
-        List<String> versionList = new ArrayList<String>();
-        File dir = getEntityDir(id);
-        for (String name : dir.list()) {
-            Matcher m = versionPattern.matcher(name);
-            if (m.find()) {
-                versionList.add(name.substring(m.start() + 8, m.end() - 4));
-            }
-        }
-        return versionList;
     }
 }

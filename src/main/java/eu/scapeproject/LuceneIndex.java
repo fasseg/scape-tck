@@ -12,7 +12,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.queryParser.MultiFieldQueryParser;
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -67,6 +66,31 @@ public class LuceneIndex {
         getRepresentationWriter().commit();
     }
 
+    public void close() throws IOException {
+        if (this.entityWriter != null) {
+            this.entityWriter.close();
+        }
+        if (this.representationWriter != null){
+            this.representationWriter.close();
+        }
+        this.entityDir.close();
+        this.representationDir.close();
+    }
+
+    private IndexWriter getEntityWriter() throws IOException {
+        if (entityWriter == null) {
+            entityWriter = new IndexWriter(entityDir, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
+        }
+        return entityWriter;
+    }
+
+    private IndexWriter getRepresentationWriter() throws IOException {
+        if (representationWriter == null) {
+            representationWriter = new IndexWriter(representationDir, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
+        }
+        return representationWriter;
+    }
+
     public List<String> searchEntity(String term) throws Exception {
         LOG.info(":: searching for " + term);
         IndexSearcher searcher = new IndexSearcher(IndexReader.open(entityDir));
@@ -84,31 +108,6 @@ public class LuceneIndex {
         searcher.close();
         LOG.info(":: search yielded " + result.size() + " hits");
         return result;
-    }
-
-    private IndexWriter getEntityWriter() throws IOException {
-        if (entityWriter == null) {
-            entityWriter = new IndexWriter(entityDir, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
-        }
-        return entityWriter;
-    }
-
-    private IndexWriter getRepresentationWriter() throws IOException {
-        if (representationWriter == null) {
-            representationWriter = new IndexWriter(representationDir, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
-        }
-        return representationWriter;
-    }
-
-    public void close() throws IOException {
-        if (this.entityWriter != null) {
-            this.entityWriter.close();
-        }
-        if (this.representationWriter != null){
-            this.representationWriter.close();
-        }
-        this.entityDir.close();
-        this.representationDir.close();
     }
 
     public List<String> searchRepresentation(String term) throws Exception {

@@ -16,12 +16,13 @@ import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.metadata.mix.NisoMixMetadata;
 
 public class ModelUtil {
-    public static final Agent createTestCreator() {
-        return new Agent.Builder()
-                .name("henry testcreator")
-                .note("a test agent")
-                .role("creator")
-                .type("human")
+    public static final DCMetadata createDCMetadata() {
+        return new DCMetadata.Builder()
+                .identifier(new Identifier(UUID.randomUUID().toString()))
+                .creator(createTestCreator())
+                .title("A test entity")
+                .date(new Date())
+                .language("en")
                 .build();
     }
 
@@ -33,16 +34,6 @@ public class ModelUtil {
             ieBuilder.representations(representations);
         }
         return ieBuilder.build();
-    }
-
-    public static final DCMetadata createDCMetadata() {
-        return new DCMetadata.Builder()
-                .identifier(new Identifier(UUID.randomUUID().toString()))
-                .creator(createTestCreator())
-                .title("A test entity")
-                .date(new Date())
-                .language("en")
-                .build();
     }
 
     public static final Representation createImageRepresentation(URI uri) {
@@ -63,6 +54,15 @@ public class ModelUtil {
         return new NisoMixMetadata.Builder()
                 .height(0)
                 .width(0)
+                .build();
+    }
+
+    public static final Agent createTestCreator() {
+        return new Agent.Builder()
+                .name("henry testcreator")
+                .note("a test agent")
+                .role("creator")
+                .type("human")
                 .build();
     }
 
