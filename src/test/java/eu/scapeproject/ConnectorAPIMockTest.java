@@ -494,6 +494,7 @@ public class ConnectorAPIMockTest {
                 .descriptive(dc.build())
                 .build();
         // post it for persisting to the Mock
+        log.debug(" || sending metadata record " + dc.identifier.getValue());
         HttpPost post = UTIL.createPostEntity(oldVersion);
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();

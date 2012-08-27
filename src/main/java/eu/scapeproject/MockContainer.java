@@ -44,9 +44,8 @@ import eu.scapeproject.model.util.MetsUtil;
 
 public class MockContainer implements Container {
 
-
     private static final Logger LOG = LoggerFactory.getLogger(MockContainer.class);
-    
+
     private final PosixStorage storage;
     private final LuceneIndex index;
     private final int asyncIngestDelay = 1000;
@@ -76,8 +75,8 @@ public class MockContainer implements Container {
     private Object getBitStream(String bsId, IntellectualEntity entity) {
         for (Representation r : entity.getRepresentations()) {
             for (File f : r.getFiles()) {
-                if (f.getBitStreams() != null){
-                    for (BitStream bs: f.getBitStreams()){
+                if (f.getBitStreams() != null) {
+                    for (BitStream bs : f.getBitStreams()) {
                         if (bs.getIdentifier().getValue().equals(bsId)) {
                             return bs;
                         }
@@ -198,15 +197,16 @@ public class MockContainer implements Container {
 
     private void handleIngest(Request req, Response resp, int okValue) throws Exception {
         try {
-            IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(SCAPEMarshaller.getInstance().deserialize(
-                    IntellectualEntity.class, req.getInputStream()));
+            IntellectualEntity ent = SCAPEMarshaller.getInstance().deserialize(
+                    IntellectualEntity.class, req.getInputStream());
+            IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(ent);
             entityBuilder.lifecycleState(new LifecycleState("", State.INGESTED));
             IntellectualEntity entity = entityBuilder.build();
 
             // have to check for id existence and generate some if necessary
             if (entity.getIdentifier() == null || entity.getIdentifier().getValue() == null) {
                 entityBuilder.identifier(new Identifier(UUID.randomUUID().toString()));
-                entity=entityBuilder.build();
+                entity = entityBuilder.build();
             }
 
             ingestEntity(entity);
@@ -467,31 +467,31 @@ public class MockContainer implements Container {
         // save the identifiers to the according maps
         // and check that all objects have identifiers
         if (entity.getRepresentations() != null) {
-            List<Representation> representationsCopy=new ArrayList<Representation>();
+            List<Representation> representationsCopy = new ArrayList<Representation>();
             for (Representation r : entity.getRepresentations()) {
-                Representation.Builder repCopyBuilder=new Representation.Builder(r)
-                    .identifier((r.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : r.getIdentifier());
-                if (r.getFiles() != null){
+                Representation.Builder repCopyBuilder = new Representation.Builder(r)
+                        .identifier((r.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : r.getIdentifier());
+                if (r.getFiles() != null) {
                     repCopyBuilder.files(null);
                     for (File f : r.getFiles()) {
-                        File.Builder fileCopyBuilder=new File.Builder(f)
-                            .identifier((f.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : f.getIdentifier());
-                        if (f.getBitStreams() != null){
+                        File.Builder fileCopyBuilder = new File.Builder(f)
+                                .identifier((f.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : f.getIdentifier());
+                        if (f.getBitStreams() != null) {
                             fileCopyBuilder.bitStreams(null);
-                            for (BitStream bs:f.getBitStreams()){
-                                BitStream bsCopy=new BitStream.Builder(bs)
-                                    .identifier((bs.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : bs.getIdentifier())
-                                    .build();
+                            for (BitStream bs : f.getBitStreams()) {
+                                BitStream bsCopy = new BitStream.Builder(bs)
+                                        .identifier((bs.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : bs.getIdentifier())
+                                        .build();
                                 bitstreamIdMap.put(bsCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
                                 fileCopyBuilder.bitStream(bsCopy);
                             }
                         }
-                        File fileCopy=fileCopyBuilder.build();
+                        File fileCopy = fileCopyBuilder.build();
                         fileIdMap.put(fileCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
                         repCopyBuilder.file(fileCopy);
                     }
                 }
-                Representation repCopy=repCopyBuilder.build();
+                Representation repCopy = repCopyBuilder.build();
                 representationsCopy.add(repCopy);
                 representationIdMap.put(repCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
             }
@@ -511,6 +511,7 @@ public class MockContainer implements Container {
         storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), version, false);
 
         // update the hashmap with the metadata references to the entities
+        LOG.debug("++ adding metadata " + entity.getDescriptive().getId());
         metadataIdMap.put(entity.getDescriptive().getId(), entity.getIdentifier().getValue());
     }
 
