@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FileSystemUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
@@ -117,6 +118,8 @@ public class PosixStorage {
     }
 
     public void purge() throws Exception {
+    	// to avoid delete problems on windows use gc first. 
+    	System.gc();
         FileUtils.deleteDirectory(xmlDirectory);
         FileUtils.deleteDirectory(datastreamDirectory);
     }
