@@ -39,6 +39,7 @@ import eu.scapeproject.model.Representation;
 import eu.scapeproject.model.VersionList;
 import eu.scapeproject.model.metadata.dc.DCMetadata;
 import eu.scapeproject.model.mets.SCAPEMarshaller;
+import eu.scapeproject.model.util.ListUtil;
 
 public class ConnectorAPIMockTest {
 
@@ -146,6 +147,7 @@ public class ConnectorAPIMockTest {
         HttpPost post = UTIL.createPostEntity(entity);
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
+        String id = IOUtils.toString(resp.getEntity().getContent());
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
         HttpGet get = UTIL.createGetEntity(entity.getIdentifier().getValue());
@@ -154,6 +156,11 @@ public class ConnectorAPIMockTest {
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
         get.releaseConnection();
         assertTrue(fetched.getLifecycleState().getState().equals(State.INGESTED));
+        assertEquals(id, fetched.getIdentifier().getValue());
+        assertEquals(entity.getIdentifier(), fetched.getIdentifier());
+        assertEquals(entity.getAlternativeIdentifiers(), fetched.getAlternativeIdentifiers());
+        assertEquals(entity.getDescriptive(),fetched.getDescriptive());
+        assertTrue(ListUtil.compareLists(Representation.class,entity.getRepresentations(),fetched.getRepresentations()));
     }
 
     @Test
