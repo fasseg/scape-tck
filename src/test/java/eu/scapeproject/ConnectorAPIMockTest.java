@@ -195,7 +195,12 @@ public class ConnectorAPIMockTest {
         HttpGet get = UTIL.createGetEntity(id);
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
+        IntellectualEntity fetched = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
         get.releaseConnection();
+        assertEquals(id, fetched.getIdentifier().getValue());
+        assertEquals(ie.getAlternativeIdentifiers(), fetched.getAlternativeIdentifiers());
+        assertEquals(ie.getDescriptive(),fetched.getDescriptive());
+        assertEquals(LifecycleState.State.INGESTED,fetched.getLifecycleState().getState());
     }
 
     @Test
