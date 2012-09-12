@@ -10,12 +10,12 @@ In order to run this mock the dependencies have to be available for maven:
 
 In order to start a Mockservice, create an instance of ConnectorAPIMock, wrap it in a thread like so:
 
-    private final ConnectorAPIMock MOCK = new ConnectorAPIMock(8387);
+    private final ConnectorAPIMock mock = new ConnectorAPIMock(8387);
 
     public void setup() throws Exception {
-        Thread t = new Thread(MOCK);
+        Thread t = new Thread(mock);
         t.start();
-        while (!MOCK.isRunning()) {
+        while (!mock.isRunning()) {
             Thread.sleep(10);
         }
         // Mock is now running and exposes it's end points on port 8387
