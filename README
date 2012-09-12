@@ -3,7 +3,7 @@ Connector API Technical Compability Kit
 
 This TCK mocks a SCAPE Connector API and exposes the various end point via HTTP. 
 
-In order to run this mock the dependencies have to be available for maven:
+In order to run this mock the following dependencies have to be available to maven:
 
  - https://github.com/fasseg/scape-dto
  - https://github.com/fasseg/mets-dto
@@ -19,8 +19,11 @@ In order to start a Mockservice, create an instance of ConnectorAPIMock, wrap it
             Thread.sleep(10);
         }
         // Mock is now running and exposes it's end points on port 8387
+        // e.g. HTTP1.1/GET http://localhost:8387/entity/<entity-id>
         [..GET/PUT/POST/DELETE..]
     }
+
+
 
 For an example of the Mock in action please check the tests in the following class:
 
