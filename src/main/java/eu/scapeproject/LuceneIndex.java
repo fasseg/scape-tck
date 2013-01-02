@@ -39,10 +39,10 @@ public class LuceneIndex {
         doc.add(new Field("id", entity.getIdentifier().getValue(), Field.Store.YES, Field.Index.NOT_ANALYZED));
         DCMetadata dc = (DCMetadata) entity.getDescriptive();
         if (dc != null) {
-            if (dc.getTitle() != null && !dc.getTitle().isEmpty() ) {
+            if (dc.getTitle() != null && !dc.getTitle().isEmpty() && dc.getTitle().get(0) != null ) {
                 doc.add(new Field("title", dc.getTitle().get(0), Field.Store.YES, Field.Index.ANALYZED));
             }
-            if (dc.getDescription() != null && !dc.getDescription().isEmpty() ) {
+            if (dc.getDescription() != null && !dc.getDescription().isEmpty() && dc.getDescription().get(0) != null ) {
                 doc.add(new Field("description", dc.getDescription().get(0), Field.Store.YES, Field.Index.ANALYZED));
             }
         }
