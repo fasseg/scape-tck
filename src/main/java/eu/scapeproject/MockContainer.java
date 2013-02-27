@@ -374,7 +374,7 @@ public class MockContainer implements Container {
             IntellectualEntity e = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
             DCMetadata dc = (DCMetadata) e.getDescriptive();
             resp.set("Content-Type", "text/xml");
-            SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(MetsUtil.convertDCMetadata(dc), resp.getOutputStream());
+            SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(MetsUtil.convertDescriptiveMetadata(dc), resp.getOutputStream());
             resp.setCode(200);
         } catch (FileNotFoundException e) {
             resp.setCode(404);

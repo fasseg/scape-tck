@@ -43,8 +43,7 @@ public class ModelUtil {
                 .technical(createNisoMetadata())
                 .bitStreams(streams)
                 .build();
-        return new Representation.Builder()
-                .identifier(new Identifier("image-representation-" + new Date().getTime()))
+        return new Representation.Builder(new Identifier("image-representation-" + new Date().getTime()))
                 .file(file)
                 .technical(createNisoMetadata())
                 .build();
@@ -73,8 +72,7 @@ public class ModelUtil {
                 .technical(createNisoMetadata())
                 .bitStreams(new ArrayList<BitStream>())
                 .build();
-        return new Representation.Builder()
-                .identifier(new Identifier(UUID.randomUUID().toString()))
+        return new Representation.Builder(new Identifier(UUID.randomUUID().toString()))
                 .title(title)
                 .file(file)
                 .technical(createNisoMetadata())
