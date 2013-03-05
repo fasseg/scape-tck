@@ -16,6 +16,8 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.xml.bind.JAXBException;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SerializationException;
 import org.simpleframework.http.Request;
@@ -24,23 +26,15 @@ import org.simpleframework.http.core.Container;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eu.scapeproject.dto.mets.MetsDMDSec;
-import eu.scapeproject.dto.mets.MetsDocument;
-import eu.scapeproject.dto.mets.MetsMDRef;
-import eu.scapeproject.dto.mets.MetsMetadata;
 import eu.scapeproject.model.BitStream;
 import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
-import eu.scapeproject.model.IntellectualEntityCollection;
 import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.Representation;
-import eu.scapeproject.model.VersionList;
-import eu.scapeproject.model.metadata.DescriptiveMetadata;
-import eu.scapeproject.model.metadata.dc.DCMetadata;
-import eu.scapeproject.model.mets.SCAPEMarshaller;
-import eu.scapeproject.model.util.MetsUtil;
+import eu.scapeproject.util.ONBConverter;
+import eu.scapeproject.util.ScapeMarshaller;
 
 public class MockContainer implements Container {
 
@@ -56,13 +50,15 @@ public class MockContainer implements Container {
     private final Map<Long, Object> asyncIngestMap = new HashMap<Long, Object>();
     private final AsyncIngester asyncIngester = new AsyncIngester();
     private final int port;
+    private final ScapeMarshaller marshaller;
 
     private Thread asyncIngesterThread = new Thread();
 
-    public MockContainer(String path, int port) {
+    public MockContainer(String path, int port) throws JAXBException{
         this.storage = new PosixStorage(path);
         this.index = new LuceneIndex();
         this.port = port;
+        this.marshaller = ScapeMarshaller.newInstance(new ONBConverter());
     }
 
     public void close() throws Exception {
@@ -128,7 +124,7 @@ public class MockContainer implements Container {
 
     private void handleAsyncIngest(Request req, Response resp, int okValue) throws Exception {
         // get entity from request body
-        IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(SCAPEMarshaller.getInstance().deserialize(
+        IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(marshaller.deserialize(
                 IntellectualEntity.class, req.getInputStream()));
         entityBuilder.lifecycleState(new LifecycleState("async ingest", State.INGESTING));
         IntellectualEntity entity = entityBuilder.build();
@@ -147,20 +143,20 @@ public class MockContainer implements Container {
         }
 
         // return the identity to get the lifecyclestate
-        SCAPEMarshaller.getInstance().serialize(entity.getIdentifier(), resp.getOutputStream());
+        marshaller.serialize(entity.getIdentifier(), resp.getOutputStream());
         resp.setCode(okValue);
     }
 
     private void handleEntitySRU(Request req, Response resp) throws Exception {
-        String term = req.getParameter("query");
-        List<MetsDocument> entities = new ArrayList<MetsDocument>();
-        for (String id : index.searchEntity(term)) {
-            byte[] xml = storage.getXML(id);
-            entities.add((MetsDocument) SCAPEMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
-        }
-        IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
-        SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(coll, resp.getOutputStream());
-        resp.setCode(200);
+//        String term = req.getParameter("query");
+//        List<MetsDocument> entities = new ArrayList<MetsDocument>();
+//        for (String id : index.searchEntity(term)) {
+//            byte[] xml = storage.getXML(id);
+//            entities.add((MetsDocument) marshaller.getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
+//        }
+//        IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
+//        marshaller.getJaxbMarshaller().marshal(coll, resp.getOutputStream());
+//        resp.setCode(200);
     }
 
     private void handleGet(Request req, Response resp) throws IOException {
@@ -197,7 +193,7 @@ public class MockContainer implements Container {
 
     private void handleIngest(Request req, Response resp, int okValue) throws Exception {
         try {
-            IntellectualEntity ent = SCAPEMarshaller.getInstance().deserialize(
+            IntellectualEntity ent = marshaller.deserialize(
                     IntellectualEntity.class, req.getInputStream());
             IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(ent);
             entityBuilder.lifecycleState(new LifecycleState("", State.INGESTED));
@@ -264,15 +260,15 @@ public class MockContainer implements Container {
     }
 
     private void handleRepresentationSRU(Request req, Response resp) throws Exception {
-        String term = req.getParameter("query");
-        List<MetsDocument> entities = new ArrayList<MetsDocument>();
-        for (String id : index.searchRepresentation(term)) {
-            byte[] xml = storage.getXML(representationIdMap.get(id));
-            entities.add((MetsDocument) SCAPEMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
-        }
-        IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
-        SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(coll, resp.getOutputStream());
-        resp.setCode(200);
+//        String term = req.getParameter("query");
+//        List<MetsDocument> entities = new ArrayList<MetsDocument>();
+//        for (String id : index.searchRepresentation(term)) {
+//            byte[] xml = storage.getXML(representationIdMap.get(id));
+//            entities.add((MetsDocument) marshaller.getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
+//        }
+//        IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
+//        marshaller.getJaxbMarshaller().marshal(coll, resp.getOutputStream());
+//        resp.setCode(200);
     }
 
     private void handleRetrieveBitStream(Request req, Response resp) throws Exception {
@@ -282,53 +278,53 @@ public class MockContainer implements Container {
             resp.setCode(404);
         } else {
             byte[] blob = storage.getXML(entityId, getVersionFromPath(req.getPath().getPath()));
-            IntellectualEntity entity = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class,
+            IntellectualEntity entity = marshaller.deserialize(IntellectualEntity.class,
                     new ByteArrayInputStream(blob));
-            SCAPEMarshaller.getInstance().serialize(getBitStream(bsId, entity), resp.getOutputStream());
+            marshaller.serialize(getBitStream(bsId, entity), resp.getOutputStream());
             resp.setCode(200);
         }
     }
 
     private void handleRetrieveEntity(Request req, Response resp) throws Exception {
-        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
-
-        try {
-            byte[] blob = storage.getXML(id, getVersionFromPath(req.getPath().getPath()));
-            if (req.getParameter("useReferences") != null && req.getParameter("useReferences").equalsIgnoreCase("true")) {
-                MetsDocument doc = (MetsDocument) SCAPEMarshaller.getInstance().getJaxbUnmarshaller()
-                        .unmarshal(new ByteArrayInputStream(blob));
-                MetsMDRef.Builder ref = new MetsMDRef.Builder()
-                        .id(UUID.randomUUID().toString())
-                        .href("http://localhost:" + port + "/metadata/" + doc.getDmdSec().getId());
-                MetsDMDSec dmdSec = new MetsDMDSec.Builder(doc.getDmdSec().getId())
-                        .mdRef(ref.build())
-                        .metadataWrapper(null)
-                        .build();
-                MetsDocument.Builder docBuilder = new MetsDocument.Builder(doc)
-                        .dmdSec(dmdSec);
-                SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(docBuilder.build(), resp.getOutputStream());
-            } else {
-                IOUtils.write(blob, resp.getOutputStream());
-            }
-            resp.setCode(200);
-            resp.close();
-        } catch (FileNotFoundException e) {
-            resp.setCode(404);
-        } finally {
-            resp.close();
-        }
+//        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
+//
+//        try {
+//            byte[] blob = storage.getXML(id, getVersionFromPath(req.getPath().getPath()));
+//            if (req.getParameter("useReferences") != null && req.getParameter("useReferences").equalsIgnoreCase("true")) {
+//                MetsDocument doc = (MetsDocument) marshaller.getJaxbUnmarshaller()
+//                        .unmarshal(new ByteArrayInputStream(blob));
+//                MetsMDRef.Builder ref = new MetsMDRef.Builder()
+//                        .id(UUID.randomUUID().toString())
+//                        .href("http://localhost:" + port + "/metadata/" + doc.getDmdSec().getId());
+//                MetsDMDSec dmdSec = new MetsDMDSec.Builder(doc.getDmdSec().getId())
+//                        .mdRef(ref.build())
+//                        .metadataWrapper(null)
+//                        .build();
+//                MetsDocument.Builder docBuilder = new MetsDocument.Builder(doc)
+//                        .dmdSec(dmdSec);
+//                marshaller.getJaxbMarshaller().marshal(docBuilder.build(), resp.getOutputStream());
+//            } else {
+//                IOUtils.write(blob, resp.getOutputStream());
+//            }
+//            resp.setCode(200);
+//            resp.close();
+//        } catch (FileNotFoundException e) {
+//            resp.setCode(404);
+//        } finally {
+//            resp.close();
+//        }
     }
 
     private void handleRetrieveEntityList(Request req, Response resp) throws Exception {
-        String[] uris = req.getContent().split("\\n");
-        List<MetsDocument> docs = new ArrayList<MetsDocument>();
-        for (String uri : uris) {
-            byte[] blob = storage.getXML(uri);
-            docs.add((MetsDocument) SCAPEMarshaller.getInstance().getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(blob)));
-        }
-        IntellectualEntityCollection entities = new IntellectualEntityCollection(docs);
-        SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(entities, resp.getOutputStream());
-        resp.setCode(200);
+//        String[] uris = req.getContent().split("\\n");
+//        List<MetsDocument> docs = new ArrayList<MetsDocument>();
+//        for (String uri : uris) {
+//            byte[] blob = storage.getXML(uri);
+//            docs.add((MetsDocument) marshaller.getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(blob)));
+//        }
+//        IntellectualEntityCollection entities = new IntellectualEntityCollection(docs);
+//        marshaller.getJaxbMarshaller().marshal(entities, resp.getOutputStream());
+//        resp.setCode(200);
     }
 
     private void handleRetrieveFile(Request req, Response resp) throws Exception {
@@ -338,9 +334,9 @@ public class MockContainer implements Container {
         if (entityIdid == null) {
             resp.setCode(404);
         } else {
-            IntellectualEntity entity = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class,
+            IntellectualEntity entity = marshaller.deserialize(IntellectualEntity.class,
                     new ByteArrayInputStream(blob));
-            SCAPEMarshaller.getInstance().serialize(getFile(fileId, entity), resp.getOutputStream());
+            marshaller.serialize(getFile(fileId, entity), resp.getOutputStream());
             resp.setCode(200);
         }
     }
@@ -349,16 +345,16 @@ public class MockContainer implements Container {
         String id = req.getPath().getPath().substring(11);
         Integer version = getVersionFromPath(req.getPath().getPath());
         if (storage.exists(id, version)) {
-            IntellectualEntity entity = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class,
+            IntellectualEntity entity = marshaller.deserialize(IntellectualEntity.class,
                     new ByteArrayInputStream(storage.getXML(id, version)));
-            SCAPEMarshaller.getInstance().serialize(entity.getLifecycleState(), resp.getOutputStream());
+            marshaller.serialize(entity.getLifecycleState(), resp.getOutputStream());
             return;
         }
         for (Entry<Long, Object> entry : asyncIngestMap.entrySet()) {
             if (entry.getValue() instanceof IntellectualEntity) {
                 IntellectualEntity ent = (IntellectualEntity) entry.getValue();
                 if (ent.getIdentifier().getValue().equals(id)) {
-                    SCAPEMarshaller.getInstance().serialize(ent.getLifecycleState(), resp.getOutputStream());
+                    marshaller.serialize(ent.getLifecycleState(), resp.getOutputStream());
                     return;
                 }
             }
@@ -367,18 +363,18 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveMetadata(Request req, Response resp) throws Exception {
-        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
-        byte[] blob = storage.getXML(metadataIdMap.get(id), getVersionFromPath(req.getPath().getPath()));
-
-        try {
-            IntellectualEntity e = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
-            DCMetadata dc = (DCMetadata) e.getDescriptive();
-            resp.set("Content-Type", "text/xml");
-            SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(MetsUtil.convertDCMetadata(dc), resp.getOutputStream());
-            resp.setCode(200);
-        } catch (FileNotFoundException e) {
-            resp.setCode(404);
-        }
+//        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
+//        byte[] blob = storage.getXML(metadataIdMap.get(id), getVersionFromPath(req.getPath().getPath()));
+//
+//        try {
+//            IntellectualEntity e = marshaller.deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
+//            DCMetadata dc = (DCMetadata) e.getDescriptive();
+//            resp.set("Content-Type", "text/xml");
+//            marshaller.getJaxbMarshaller().marshal(MetsUtil.convertDCMetadata(dc), resp.getOutputStream());
+//            resp.setCode(200);
+//        } catch (FileNotFoundException e) {
+//            resp.setCode(404);
+//        }
     }
 
     private void handleRetrieveRepresentation(Request req, Response resp) throws Exception {
@@ -396,12 +392,12 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveVersionList(Request req, Response resp) throws Exception {
-        String id = req.getPath().getPath().substring(21);
-        List<String> versions = storage.getVersionList(id);
-        Collections.sort(versions);
-        VersionList versionList = new VersionList(id, versions);
-        SCAPEMarshaller.getInstance().getJaxbMarshaller().marshal(versionList, resp.getOutputStream());
-        resp.setCode(200);
+//        String id = req.getPath().getPath().substring(21);
+//        List<String> versions = storage.getVersionList(id);
+//        Collections.sort(versions);
+//        VersionList versionList = new VersionList(id, versions);
+//        marshaller.getJaxbMarshaller().marshal(versionList, resp.getOutputStream());
+//        resp.setCode(200);
     }
 
     private void handleUpdateEntity(Request req, Response resp) throws Exception {
@@ -413,25 +409,24 @@ public class MockContainer implements Container {
     }
 
     private void handleUpdateMetadata(Request req, Response resp) throws Exception {
-        MetsMetadata data = SCAPEMarshaller.getInstance().deserialize(MetsMetadata.class, req.getInputStream());
-        String entityId = metadataIdMap.get(data.getId());
-        byte[] blob = storage.getXML(entityId);
-        IntellectualEntity oldVersion = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
-        IntellectualEntity.Builder newVersion = new IntellectualEntity.Builder(oldVersion);
-        if (data instanceof DCMetadata) {
-            newVersion.descriptive((DescriptiveMetadata) data);
-        }
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        SCAPEMarshaller.getInstance().serialize(newVersion.build(), bos);
-        storage.saveXML(bos.toByteArray(), entityId, storage.getNewVersionNumber(entityId), false);
-
+//        MetsMetadata data = marshaller.deserialize(MetsMetadata.class, req.getInputStream());
+//        String entityId = metadataIdMap.get(data.getId());
+//        byte[] blob = storage.getXML(entityId);
+//        IntellectualEntity oldVersion = marshaller.deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
+//        IntellectualEntity.Builder newVersion = new IntellectualEntity.Builder(oldVersion);
+//        if (data instanceof DCMetadata) {
+//            newVersion.descriptive((DescriptiveMetadata) data);
+//        }
+//        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//        marshaller.serialize(newVersion.build(), bos);
+//        storage.saveXML(bos.toByteArray(), entityId, storage.getNewVersionNumber(entityId), false);
     }
 
     private void handleUpdateRepresentation(Request req, Response resp) throws Exception {
         try {
-            Representation newRep = SCAPEMarshaller.getInstance().deserialize(Representation.class, req.getInputStream());
+            Representation newRep = marshaller.deserialize(Representation.class, req.getInputStream());
             byte[] blob = storage.getXML(representationIdMap.get(newRep.getIdentifier().getValue()));
-            IntellectualEntity ie = SCAPEMarshaller.getInstance().deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
+            IntellectualEntity ie = marshaller.deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
             List<Representation> newRepresentations = new ArrayList<Representation>(ie.getRepresentations().size());
             for (Representation orig : ie.getRepresentations()) {
                 if (orig.getIdentifier().getValue().equals(newRep.getIdentifier().getValue())) {
@@ -444,7 +439,7 @@ public class MockContainer implements Container {
                     .representations(newRepresentations)
                     .build();
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            SCAPEMarshaller.getInstance().serialize(newVersion, bos);
+            marshaller.serialize(newVersion, bos);
             storage.saveXML(bos.toByteArray(), newVersion.getIdentifier().getValue(), storage.getNewVersionNumber(newVersion.getIdentifier().getValue()), false);
             LOG.debug("updated representation " + newRep.getIdentifier().getValue() + " of intellectual entity " + newVersion.getIdentifier().getValue());
             index.addRepresentation(newRep);
@@ -503,7 +498,7 @@ public class MockContainer implements Container {
 
         // save the data in the storage backend
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        SCAPEMarshaller.getInstance().serialize(entity, bos);
+        marshaller.serialize(entity, bos);
         int version = entity.getVersionNumber();
         if (storage.exists(entity.getIdentifier().getValue(), entity.getVersionNumber())) {
             version = storage.getNewVersionNumber(entity.getIdentifier().getValue());
