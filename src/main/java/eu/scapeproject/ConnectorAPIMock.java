@@ -45,12 +45,12 @@ public class ConnectorAPIMock implements Runnable {
 		try {
 			this.startServer();
 			this.running = true;
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
-	private void startServer() throws IOException {
+	private void startServer() throws Exception {
 		this.container = new MockContainer(this.path, this.port);
 		this.conn = new SocketConnection(this.container);
 		this.startupMem = Runtime.getRuntime().totalMemory();

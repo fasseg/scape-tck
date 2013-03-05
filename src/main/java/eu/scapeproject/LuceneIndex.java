@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.JAXBElement;
+
 import org.apache.lucene.analysis.SimpleAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -19,12 +21,13 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
+import org.purl.dc.elements._1.ElementContainer;
+import org.purl.dc.elements._1.SimpleLiteral;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.Representation;
-import eu.scapeproject.model.metadata.dc.DCMetadata;
 
 public class LuceneIndex {
     private final Directory entityDir = new RAMDirectory();
@@ -37,13 +40,23 @@ public class LuceneIndex {
         LOG.info("++ adding entity " + entity.getIdentifier().getValue());
         Document doc = new Document();
         doc.add(new Field("id", entity.getIdentifier().getValue(), Field.Store.YES, Field.Index.NOT_ANALYZED));
-        DCMetadata dc = (DCMetadata) entity.getDescriptive();
-        if (dc != null) {
-            if (dc.getTitle() != null && dc.getTitle().get(0) != null) {
-                doc.add(new Field("title", dc.getTitle().get(0), Field.Store.YES, Field.Index.ANALYZED));
-            }
-            if (dc.getDescription() != null && dc.getDescription().size() > 0 && dc.getDescription().get(0) != null) {
-                doc.add(new Field("description", dc.getDescription().get(0), Field.Store.YES, Field.Index.ANALYZED));
+        Object o = entity.getDescriptive();
+        if (o instanceof ElementContainer){
+            List<String> titles = new ArrayList<String>();
+            ElementContainer dc = (ElementContainer) o;
+            for (JAXBElement<?> jaxb : dc.getAny()){
+                if (jaxb.getName().getLocalPart().equals("title")){
+                    SimpleLiteral lit = (SimpleLiteral) jaxb.getValue();
+                    for (String title : lit.getContent()){
+                        doc.add(new Field("title", title, Field.Store.YES, Field.Index.ANALYZED));
+                    }
+                }else if (jaxb.getName().getLocalPart().equals("description")){
+                    SimpleLiteral lit = (SimpleLiteral) jaxb.getValue();
+                    for (String title : lit.getContent()){
+                        doc.add(new Field("description", title, Field.Store.YES, Field.Index.ANALYZED));
+                    }
+                }
+                
             }
         }
         if (entity.getRepresentations() != null) {
