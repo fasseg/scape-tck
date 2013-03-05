@@ -5,7 +5,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +19,7 @@ import javax.xml.bind.JAXBException;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.SerializationException;
+import org.purl.dc.elements._1.ElementContainer;
 import org.simpleframework.http.Request;
 import org.simpleframework.http.Response;
 import org.simpleframework.http.core.Container;
@@ -35,6 +35,7 @@ import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.Representation;
 import eu.scapeproject.util.ONBConverter;
 import eu.scapeproject.util.ScapeMarshaller;
+import gov.loc.marc21.slim.RecordType;
 
 public class MockContainer implements Container {
 
@@ -43,7 +44,11 @@ public class MockContainer implements Container {
     private final PosixStorage storage;
     private final LuceneIndex index;
     private final int asyncIngestDelay = 1000;
-    private final Map<String, String> metadataIdMap = new HashMap<String, String>();
+    private final Map<String, Object> technicalMetadata = new HashMap<String, Object>();
+    private final Map<String, Object> sourceMetadata = new HashMap<String, Object>();
+    private final Map<String, Object> provenanceMetadata = new HashMap<String, Object>();
+    private final Map<String, Object> rightsMetadata = new HashMap<String, Object>();
+    private final Map<String, Object> descriptiveMetadata = new HashMap<String, Object>();
     private final Map<String, String> fileIdMap = new HashMap<String, String>();
     private final Map<String, String> bitstreamIdMap = new HashMap<String, String>();
     private final Map<String, String> representationIdMap = new HashMap<String, String>();
@@ -54,7 +59,7 @@ public class MockContainer implements Container {
 
     private Thread asyncIngesterThread = new Thread();
 
-    public MockContainer(String path, int port) throws JAXBException{
+    public MockContainer(String path, int port) throws JAXBException {
         this.storage = new PosixStorage(path);
         this.index = new LuceneIndex();
         this.port = port;
@@ -148,15 +153,18 @@ public class MockContainer implements Container {
     }
 
     private void handleEntitySRU(Request req, Response resp) throws Exception {
-//        String term = req.getParameter("query");
-//        List<MetsDocument> entities = new ArrayList<MetsDocument>();
-//        for (String id : index.searchEntity(term)) {
-//            byte[] xml = storage.getXML(id);
-//            entities.add((MetsDocument) marshaller.getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
-//        }
-//        IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
-//        marshaller.getJaxbMarshaller().marshal(coll, resp.getOutputStream());
-//        resp.setCode(200);
+        // String term = req.getParameter("query");
+        // List<MetsDocument> entities = new ArrayList<MetsDocument>();
+        // for (String id : index.searchEntity(term)) {
+        // byte[] xml = storage.getXML(id);
+        // entities.add((MetsDocument)
+        // marshaller.getJaxbUnmarshaller().unmarshal(new
+        // ByteArrayInputStream(xml)));
+        // }
+        // IntellectualEntityCollection coll = new
+        // IntellectualEntityCollection(entities);
+        // marshaller.getJaxbMarshaller().marshal(coll, resp.getOutputStream());
+        // resp.setCode(200);
     }
 
     private void handleGet(Request req, Response resp) throws IOException {
@@ -260,15 +268,18 @@ public class MockContainer implements Container {
     }
 
     private void handleRepresentationSRU(Request req, Response resp) throws Exception {
-//        String term = req.getParameter("query");
-//        List<MetsDocument> entities = new ArrayList<MetsDocument>();
-//        for (String id : index.searchRepresentation(term)) {
-//            byte[] xml = storage.getXML(representationIdMap.get(id));
-//            entities.add((MetsDocument) marshaller.getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(xml)));
-//        }
-//        IntellectualEntityCollection coll = new IntellectualEntityCollection(entities);
-//        marshaller.getJaxbMarshaller().marshal(coll, resp.getOutputStream());
-//        resp.setCode(200);
+        // String term = req.getParameter("query");
+        // List<MetsDocument> entities = new ArrayList<MetsDocument>();
+        // for (String id : index.searchRepresentation(term)) {
+        // byte[] xml = storage.getXML(representationIdMap.get(id));
+        // entities.add((MetsDocument)
+        // marshaller.getJaxbUnmarshaller().unmarshal(new
+        // ByteArrayInputStream(xml)));
+        // }
+        // IntellectualEntityCollection coll = new
+        // IntellectualEntityCollection(entities);
+        // marshaller.getJaxbMarshaller().marshal(coll, resp.getOutputStream());
+        // resp.setCode(200);
     }
 
     private void handleRetrieveBitStream(Request req, Response resp) throws Exception {
@@ -286,45 +297,34 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveEntity(Request req, Response resp) throws Exception {
-//        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
-//
-//        try {
-//            byte[] blob = storage.getXML(id, getVersionFromPath(req.getPath().getPath()));
-//            if (req.getParameter("useReferences") != null && req.getParameter("useReferences").equalsIgnoreCase("true")) {
-//                MetsDocument doc = (MetsDocument) marshaller.getJaxbUnmarshaller()
-//                        .unmarshal(new ByteArrayInputStream(blob));
-//                MetsMDRef.Builder ref = new MetsMDRef.Builder()
-//                        .id(UUID.randomUUID().toString())
-//                        .href("http://localhost:" + port + "/metadata/" + doc.getDmdSec().getId());
-//                MetsDMDSec dmdSec = new MetsDMDSec.Builder(doc.getDmdSec().getId())
-//                        .mdRef(ref.build())
-//                        .metadataWrapper(null)
-//                        .build();
-//                MetsDocument.Builder docBuilder = new MetsDocument.Builder(doc)
-//                        .dmdSec(dmdSec);
-//                marshaller.getJaxbMarshaller().marshal(docBuilder.build(), resp.getOutputStream());
-//            } else {
-//                IOUtils.write(blob, resp.getOutputStream());
-//            }
-//            resp.setCode(200);
-//            resp.close();
-//        } catch (FileNotFoundException e) {
-//            resp.setCode(404);
-//        } finally {
-//            resp.close();
-//        }
+        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
+
+        try {
+            byte[] blob = storage.getXML(id, getVersionFromPath(req.getPath().getPath()));
+            IOUtils.write(blob, resp.getOutputStream());
+            resp.setCode(200);
+            resp.close();
+        } catch (FileNotFoundException e) {
+            resp.setCode(404);
+        } finally {
+            resp.close();
+        }
     }
 
     private void handleRetrieveEntityList(Request req, Response resp) throws Exception {
-//        String[] uris = req.getContent().split("\\n");
-//        List<MetsDocument> docs = new ArrayList<MetsDocument>();
-//        for (String uri : uris) {
-//            byte[] blob = storage.getXML(uri);
-//            docs.add((MetsDocument) marshaller.getJaxbUnmarshaller().unmarshal(new ByteArrayInputStream(blob)));
-//        }
-//        IntellectualEntityCollection entities = new IntellectualEntityCollection(docs);
-//        marshaller.getJaxbMarshaller().marshal(entities, resp.getOutputStream());
-//        resp.setCode(200);
+        // String[] uris = req.getContent().split("\\n");
+        // List<MetsDocument> docs = new ArrayList<MetsDocument>();
+        // for (String uri : uris) {
+        // byte[] blob = storage.getXML(uri);
+        // docs.add((MetsDocument)
+        // marshaller.getJaxbUnmarshaller().unmarshal(new
+        // ByteArrayInputStream(blob)));
+        // }
+        // IntellectualEntityCollection entities = new
+        // IntellectualEntityCollection(docs);
+        // marshaller.getJaxbMarshaller().marshal(entities,
+        // resp.getOutputStream());
+        // resp.setCode(200);
     }
 
     private void handleRetrieveFile(Request req, Response resp) throws Exception {
@@ -363,18 +363,24 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveMetadata(Request req, Response resp) throws Exception {
-//        String id = req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/') + 1);
-//        byte[] blob = storage.getXML(metadataIdMap.get(id), getVersionFromPath(req.getPath().getPath()));
-//
-//        try {
-//            IntellectualEntity e = marshaller.deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
-//            DCMetadata dc = (DCMetadata) e.getDescriptive();
-//            resp.set("Content-Type", "text/xml");
-//            marshaller.getJaxbMarshaller().marshal(MetsUtil.convertDCMetadata(dc), resp.getOutputStream());
-//            resp.setCode(200);
-//        } catch (FileNotFoundException e) {
-//            resp.setCode(404);
-//        }
+        // String id =
+        // req.getPath().getPath().substring(req.getPath().getPath().lastIndexOf('/')
+        // + 1);
+        // byte[] blob = storage.getXML(metadataIdMap.get(id),
+        // getVersionFromPath(req.getPath().getPath()));
+        //
+        // try {
+        // IntellectualEntity e =
+        // marshaller.deserialize(IntellectualEntity.class, new
+        // ByteArrayInputStream(blob));
+        // DCMetadata dc = (DCMetadata) e.getDescriptive();
+        // resp.set("Content-Type", "text/xml");
+        // marshaller.getJaxbMarshaller().marshal(MetsUtil.convertDCMetadata(dc),
+        // resp.getOutputStream());
+        // resp.setCode(200);
+        // } catch (FileNotFoundException e) {
+        // resp.setCode(404);
+        // }
     }
 
     private void handleRetrieveRepresentation(Request req, Response resp) throws Exception {
@@ -392,12 +398,13 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveVersionList(Request req, Response resp) throws Exception {
-//        String id = req.getPath().getPath().substring(21);
-//        List<String> versions = storage.getVersionList(id);
-//        Collections.sort(versions);
-//        VersionList versionList = new VersionList(id, versions);
-//        marshaller.getJaxbMarshaller().marshal(versionList, resp.getOutputStream());
-//        resp.setCode(200);
+        // String id = req.getPath().getPath().substring(21);
+        // List<String> versions = storage.getVersionList(id);
+        // Collections.sort(versions);
+        // VersionList versionList = new VersionList(id, versions);
+        // marshaller.getJaxbMarshaller().marshal(versionList,
+        // resp.getOutputStream());
+        // resp.setCode(200);
     }
 
     private void handleUpdateEntity(Request req, Response resp) throws Exception {
@@ -409,17 +416,22 @@ public class MockContainer implements Container {
     }
 
     private void handleUpdateMetadata(Request req, Response resp) throws Exception {
-//        MetsMetadata data = marshaller.deserialize(MetsMetadata.class, req.getInputStream());
-//        String entityId = metadataIdMap.get(data.getId());
-//        byte[] blob = storage.getXML(entityId);
-//        IntellectualEntity oldVersion = marshaller.deserialize(IntellectualEntity.class, new ByteArrayInputStream(blob));
-//        IntellectualEntity.Builder newVersion = new IntellectualEntity.Builder(oldVersion);
-//        if (data instanceof DCMetadata) {
-//            newVersion.descriptive((DescriptiveMetadata) data);
-//        }
-//        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-//        marshaller.serialize(newVersion.build(), bos);
-//        storage.saveXML(bos.toByteArray(), entityId, storage.getNewVersionNumber(entityId), false);
+        // MetsMetadata data = marshaller.deserialize(MetsMetadata.class,
+        // req.getInputStream());
+        // String entityId = metadataIdMap.get(data.getId());
+        // byte[] blob = storage.getXML(entityId);
+        // IntellectualEntity oldVersion =
+        // marshaller.deserialize(IntellectualEntity.class, new
+        // ByteArrayInputStream(blob));
+        // IntellectualEntity.Builder newVersion = new
+        // IntellectualEntity.Builder(oldVersion);
+        // if (data instanceof DCMetadata) {
+        // newVersion.descriptive((DescriptiveMetadata) data);
+        // }
+        // ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        // marshaller.serialize(newVersion.build(), bos);
+        // storage.saveXML(bos.toByteArray(), entityId,
+        // storage.getNewVersionNumber(entityId), false);
     }
 
     private void handleUpdateRepresentation(Request req, Response resp) throws Exception {
@@ -451,10 +463,8 @@ public class MockContainer implements Container {
 
     private void ingestEntity(IntellectualEntity entity) throws Exception {
         IntellectualEntity.Builder entityBuilder = new IntellectualEntity.Builder(entity);
-        if (entity.getDescriptive() == null || entity.getDescriptive().getId() == null) {
-            DCMetadata.Builder dc = new DCMetadata.Builder((DCMetadata) entity.getDescriptive())
-                    .identifier(new Identifier(UUID.randomUUID().toString()));
-            entityBuilder.descriptive(dc.build());
+        if (entity.getDescriptive() != null) {
+            this.descriptiveMetadata.put(entity.getIdentifier().getValue(), entity.getDescriptive());
         }
         // add the lifecycle state
         entityBuilder.lifecycleState(new LifecycleState("ingested", State.INGESTED));
@@ -506,8 +516,16 @@ public class MockContainer implements Container {
         storage.saveXML(bos.toByteArray(), entity.getIdentifier().getValue(), version, false);
 
         // update the hashmap with the metadata references to the entities
-        LOG.debug("++ adding metadata " + entity.getDescriptive().getId());
-        metadataIdMap.put(entity.getDescriptive().getId(), entity.getIdentifier().getValue());
+        LOG.debug("++ adding descriptive metadata for entity " + entity.getIdentifier().getValue());
+    }
+
+    private String extractId(Object descriptive) {
+        if (descriptive instanceof ElementContainer) {
+
+        } else if (descriptive instanceof RecordType) {
+            /* extract the id from the MARC record set */
+        }
+        return null;
     }
 
     public void ingestObject(Object value) throws Exception {
