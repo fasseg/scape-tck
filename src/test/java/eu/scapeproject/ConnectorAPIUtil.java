@@ -7,11 +7,10 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ByteArrayEntity;
 
-import eu.scapeproject.dto.mets.MetsMetadata;
 import eu.scapeproject.model.File;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.Representation;
-import eu.scapeproject.model.mets.SCAPEMarshaller;
+import eu.scapeproject.util.ScapeMarshaller;
 
 public class ConnectorAPIUtil {
     private static final String ENTITY_PATH = "/entity";
@@ -81,7 +80,7 @@ public class ConnectorAPIUtil {
     public HttpPost createPostEntity(IntellectualEntity ie) throws Exception {
         HttpPost post = new HttpPost(mockUrl + ENTITY_PATH);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        SCAPEMarshaller.getInstance().serialize(ie, bos);
+        ScapeMarshaller.newInstance().serialize(ie, bos);
         post.setEntity(new ByteArrayEntity(bos.toByteArray()));
         return post;
     }
@@ -89,7 +88,7 @@ public class ConnectorAPIUtil {
     public HttpPost createPostEntityAsync(IntellectualEntity ie) throws Exception {
         HttpPost post = new HttpPost(mockUrl + ENTITY_ASYNC_PATH);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        SCAPEMarshaller.getInstance().serialize(ie, bos);
+        ScapeMarshaller.newInstance().serialize(ie, bos);
         post.setEntity(new ByteArrayEntity(bos.toByteArray()));
         return post;
     }
@@ -97,15 +96,15 @@ public class ConnectorAPIUtil {
     public HttpPut createPutEntity(IntellectualEntity ie) throws Exception {
         HttpPut put = new HttpPut(mockUrl + ENTITY_PATH + "/" + ie.getIdentifier().getValue());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        SCAPEMarshaller.getInstance().serialize(ie, bos);
+        ScapeMarshaller.newInstance().serialize(ie, bos);
         put.setEntity(new ByteArrayEntity(bos.toByteArray()));
         return put;
     }
 
-    public HttpPut createPutMetadata(MetsMetadata data) throws Exception{
-        HttpPut put=new HttpPut(mockUrl + METADATA_PATH + "/" + data.getId());
+    public HttpPut createPutMetadata(String id, Object data) throws Exception{
+        HttpPut put=new HttpPut(mockUrl + METADATA_PATH + "/" + id);
         ByteArrayOutputStream bos=new ByteArrayOutputStream();
-        SCAPEMarshaller.getInstance().serialize(data, bos);
+        ScapeMarshaller.newInstance().serialize(data, bos);
         put.setEntity(new ByteArrayEntity(bos.toByteArray()));
         return put;
     }
@@ -113,7 +112,7 @@ public class ConnectorAPIUtil {
     public HttpPut createPutRepresentation(Representation newRep) throws Exception {
         HttpPut put=new HttpPut(mockUrl + REPRESENTATION_PATH + "/" + newRep.getIdentifier().getValue());
         ByteArrayOutputStream bos=new ByteArrayOutputStream();
-        SCAPEMarshaller.getInstance().serialize(newRep, bos);
+        ScapeMarshaller.newInstance().serialize(newRep, bos);
         put.setEntity(new ByteArrayEntity(bos.toByteArray()));
         return put;
     }
