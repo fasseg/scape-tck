@@ -37,10 +37,15 @@ import eu.scapeproject.model.BitStream;
 import eu.scapeproject.model.BitStream.Type;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
+import eu.scapeproject.model.IntellectualEntityCollection;
 import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
+import eu.scapeproject.model.ListUtil;
 import eu.scapeproject.model.Representation;
+import eu.scapeproject.model.VersionList;
+import eu.scapeproject.util.DefaultConverter;
 import eu.scapeproject.util.ScapeMarshaller;
+import gov.loc.mets.MetsType;
 
 public class ConnectorAPIMockTest {
 
@@ -140,7 +145,7 @@ public class ConnectorAPIMockTest {
 
         HttpGet get = UTIL.createGetVersionList(version1.getIdentifier().getValue());
         resp = CLIENT.execute(get);
-        VersionList versions = (VersionList) ScapeMarshaller.newInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        VersionList versions = (VersionList) ScapeMarshaller.newInstance().deserialize(resp.getEntity().getContent());
         get.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
         assertTrue(versions.getVersionIdentifiers().size() == 2);
@@ -224,7 +229,7 @@ public class ConnectorAPIMockTest {
         // check the lifecyclestate
         HttpGet get = UTIL.createGetEntityLifecycleState(ie.getIdentifier().getValue());
         resp = CLIENT.execute(get);
-        LifecycleState lifecycle = (LifecycleState) ScapeMarshaller.newInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        LifecycleState lifecycle = (LifecycleState) ScapeMarshaller.newInstance().deserialize(resp.getEntity().getContent());
         get.releaseConnection();
         assertTrue(lifecycle.getState() == State.INGESTING);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
@@ -240,7 +245,7 @@ public class ConnectorAPIMockTest {
             Thread.sleep(1000);
             get = UTIL.createGetEntityLifecycleState(ie.getIdentifier().getValue());
             resp = CLIENT.execute(get);
-            lifecycle = (LifecycleState) ScapeMarshaller.newInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+            lifecycle = (LifecycleState) ScapeMarshaller.newInstance().deserialize(resp.getEntity().getContent());
         }
     }
 
@@ -308,10 +313,10 @@ public class ConnectorAPIMockTest {
         HttpGet get = UTIL.createGetEntity(ie.getIdentifier().getValue(), true);
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        MetsDocument doc = (MetsDocument) ScapeMarshaller.newInstance().getJaxbUnmarshaller().unmarshal(resp.getEntity().getContent());
+        MetsType doc = (MetsType) ScapeMarshaller.newInstance().deserialize(resp.getEntity().getContent());
         assertTrue(doc.getDmdSec() != null);
-        assertTrue(doc.getDmdSec().getMetadataReference() != null);
-        assertTrue(doc.getDmdSec().getMetadataWrapper() == null);
+        assertTrue(doc.getDmdSec().get(0).getMdRef() != null);
+        assertTrue(doc.getDmdSec().get(0).getMdWrap() == null);
         get.releaseConnection();
     }
 
@@ -331,13 +336,13 @@ public class ConnectorAPIMockTest {
         get.releaseConnection();
 
         // and try to fetch and validate the fecthed entity's metadata
-        get = UTIL.createGetMetadata(fetched.getDescriptive().getId());
+        get = UTIL.createGetMetadata(fetched.getIdentifier().getValue() + "-DESCRIPTIVE");
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         IOUtils.copy(resp.getEntity().getContent(), bos);
         get.releaseConnection();
-        DCMetadata dc = ScapeMarshaller.newInstance().deserialize(DCMetadata.class, new ByteArrayInputStream(bos.toByteArray()));
+        ElementContainer dc = (ElementContainer) ScapeMarshaller.newInstance().deserialize(new ByteArrayInputStream(bos.toByteArray()));
         assertEquals(entity.getDescriptive(), dc);
     }
 
@@ -379,11 +384,11 @@ public class ConnectorAPIMockTest {
         HttpGet get = UTIL.createGetSRUEntity("should");
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        IntellectualEntityCollection resultSet = (IntellectualEntityCollection) ScapeMarshaller.newInstance().getJaxbUnmarshaller().unmarshal(
-                resp.getEntity().getContent());
+        IntellectualEntityCollection resultSet = (IntellectualEntityCollection) ScapeMarshaller.newInstance().deserialize(resp.getEntity().getContent());
         get.releaseConnection();
         assertTrue(resultSet.getEntities().size() == 1);
-        IntellectualEntity searched = ScapeMarshaller.newInstance().deserializeEntity(resultSet.getEntities().get(0));
+        DefaultConverter conv = new DefaultConverter();
+        IntellectualEntity searched = conv.convertMets(resultSet.getEntities().get(0));
         assertEquals(ie.lifecycleState(new LifecycleState("", State.INGESTED)).build(), searched);
     }
 
@@ -403,11 +408,11 @@ public class ConnectorAPIMockTest {
         HttpGet get = UTIL.createGetSRUrepresentation("testingestrepresentation");
         resp = CLIENT.execute(get);
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
-        IntellectualEntityCollection resultSet = (IntellectualEntityCollection) ScapeMarshaller.newInstance().getJaxbUnmarshaller().unmarshal(
-                resp.getEntity().getContent());
+        IntellectualEntityCollection resultSet = (IntellectualEntityCollection) ScapeMarshaller.newInstance().deserialize(resp.getEntity().getContent());
         get.releaseConnection();
         assertTrue(resultSet.getEntities().size() == 1);
-        IntellectualEntity searched = ScapeMarshaller.newInstance().deserializeEntity(resultSet.getEntities().get(0));
+        DefaultConverter conv = new DefaultConverter();
+        IntellectualEntity searched = conv.convertMets(resultSet.getEntities().get(0));
         assertEquals(ie.lifecycleState(new LifecycleState("", State.INGESTED)).build(), searched);
     }
 
@@ -465,20 +470,26 @@ public class ConnectorAPIMockTest {
 
     @Test
     public void testUpdateMetadata() throws Exception {
+        ElementContainer dc = createDCElementContainer();
         IntellectualEntity oldVersion = new IntellectualEntity.Builder()
                 .identifier(new Identifier(UUID.randomUUID().toString()))
-                .descriptive(createDCElementContainer())
+                .descriptive(dc)
                 .build();
         // post it for persisting to the Mock
-        log.debug(" || sending metadata record " + dc.identifier.getValue());
+        log.debug(" || sending metadata record " + oldVersion.getIdentifier().getValue() + "-DESCRIPTIVE");
         HttpPost post = UTIL.createPostEntity(oldVersion);
         HttpResponse resp = CLIENT.execute(post);
         post.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 201);
 
         // update the metadata in order to check the PUT method
-        dc.title("The Brand-New DC record");
-        HttpPut put = UTIL.createPutMetadata(dc.build());
+        ElementContainer dcUpdated = createDCElementContainer();
+        SimpleLiteral title = new SimpleLiteral();
+        title.getContent().add("The Brand-New DC record");
+        dcUpdated.getAny().add(new JAXBElement<SimpleLiteral>(new QName("http://purl.org/dc/elements/1.1/", "title"), SimpleLiteral.class, title));
+        
+        
+        HttpPut put = UTIL.createPutMetadata(oldVersion.getIdentifier().getValue() + "-DESCRIPTIVE",dcUpdated);
         resp = CLIENT.execute(put);
         put.releaseConnection();
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
@@ -488,7 +499,7 @@ public class ConnectorAPIMockTest {
         resp = CLIENT.execute(get);
         IntellectualEntity newVersion = ScapeMarshaller.newInstance().deserialize(IntellectualEntity.class, resp.getEntity().getContent());
         get.releaseConnection();
-        assertEquals(newVersion.getDescriptive(), dc.build());
+        assertEquals(newVersion.getDescriptive(), dcUpdated);
 
     }
 
