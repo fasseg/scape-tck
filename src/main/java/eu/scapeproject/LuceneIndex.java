@@ -42,7 +42,7 @@ public class LuceneIndex {
             if (dc.getTitle() != null && !dc.getTitle().isEmpty() && dc.getTitle().get(0) != null ) {
                 doc.add(new Field("title", dc.getTitle().get(0), Field.Store.YES, Field.Index.ANALYZED));
             }
-            if (dc.getDescription() != null && dc.getDescription().size() > 0 && dc.getDescription().get(0) != null) {
+            if (dc.getDescription() != null && !dc.getDescription().isEmpty() && dc.getDescription().get(0) != null ) {
                 doc.add(new Field("description", dc.getDescription().get(0), Field.Store.YES, Field.Index.ANALYZED));
             }
         }
