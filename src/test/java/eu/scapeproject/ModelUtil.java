@@ -19,6 +19,7 @@ import eu.scapeproject.model.File;
 import eu.scapeproject.model.Identifier;
 import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.Representation;
+import gov.loc.mix.v20.BasicImageInformationType;
 import gov.loc.mix.v20.BasicImageInformationType.BasicImageCharacteristics;
 import gov.loc.mix.v20.Mix;
 import gov.loc.mix.v20.PositiveIntegerType;
@@ -54,14 +55,16 @@ public class ModelUtil {
     }
 
     public static final Representation createImageRepresentation(URI uri, List<BitStream> streams) {
-        File file = new File.Builder()
+    	File file = new File.Builder()
                 .identifier(new Identifier("image-file-" + new Date().getTime()))
                 .uri(uri)
                 .technical(createNisoMetadata())
                 .bitStreams(streams)
                 .build();
+        List<File> fList = new ArrayList<File>();
+        fList.add(file);
         return new Representation.Builder(new Identifier("image-representation-" + new Date().getTime()))
-                .file(file)
+                .files(fList)
                 .technical(createNisoMetadata())
                 .build();
     }
@@ -73,6 +76,8 @@ public class ModelUtil {
         BasicImageCharacteristics ch = new BasicImageCharacteristics();
         ch.setImageHeight(height);
         ch.setImageWidth(height);
+        BasicImageInformationType ii = new BasicImageInformationType();
+        mix.setBasicImageInformation(ii);
         mix.getBasicImageInformation().setBasicImageCharacteristics(ch);
         return mix;
     }
@@ -84,9 +89,11 @@ public class ModelUtil {
                 .technical(createNisoMetadata())
                 .bitStreams(new ArrayList<BitStream>())
                 .build();
+        List<File> fList = new ArrayList<File>();
+        fList.add(file);
         return new Representation.Builder(new Identifier(UUID.randomUUID().toString()))
                 .title(title)
-                .file(file)
+                .files(fList)
                 .technical(createNisoMetadata())
                 .build();
     }

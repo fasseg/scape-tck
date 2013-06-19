@@ -63,7 +63,9 @@ public class MockContainer implements Container {
         this.storage = new PosixStorage(path);
         this.index = new LuceneIndex();
         this.port = port;
-        this.marshaller = ScapeMarshaller.newInstance(new ONBConverter());
+        this.marshaller = ScapeMarshaller.newInstance();
+
+        
     }
 
     public void close() throws Exception {
@@ -478,22 +480,26 @@ public class MockContainer implements Container {
                         .identifier((r.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : r.getIdentifier());
                 if (r.getFiles() != null) {
                     repCopyBuilder.files(null);
+                    List<File> fList = new ArrayList<File>();
                     for (File f : r.getFiles()) {
                         File.Builder fileCopyBuilder = new File.Builder(f)
                                 .identifier((f.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : f.getIdentifier());
                         if (f.getBitStreams() != null) {
                             fileCopyBuilder.bitStreams(null);
+                            List<BitStream> bsList = new ArrayList<BitStream>();
                             for (BitStream bs : f.getBitStreams()) {
                                 BitStream bsCopy = new BitStream.Builder(bs)
                                         .identifier((bs.getIdentifier() == null) ? new Identifier(UUID.randomUUID().toString()) : bs.getIdentifier())
                                         .build();
                                 bitstreamIdMap.put(bsCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
-                                fileCopyBuilder.bitStream(bsCopy);
+                                bsList.add(bsCopy);
+                                fileCopyBuilder.bitStreams(bsList);
                             }
                         }
                         File fileCopy = fileCopyBuilder.build();
-                        fileIdMap.put(fileCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());
-                        repCopyBuilder.file(fileCopy);
+                        fileIdMap.put(fileCopy.getIdentifier().getValue(), entity.getIdentifier().getValue());                        
+                        fList.add(fileCopy);
+                        repCopyBuilder.files(fList);
                     }
                 }
                 Representation repCopy = repCopyBuilder.build();
