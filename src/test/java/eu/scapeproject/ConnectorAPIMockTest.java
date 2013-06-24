@@ -277,9 +277,10 @@ public class ConnectorAPIMockTest {
                 .identifier(new Identifier(UUID.randomUUID().toString()))
                 .build();
 
+        
         IntellectualEntity entity = ModelUtil
                 .createEntity(Arrays.asList(ModelUtil.createImageRepresentation(URI
-                        .create("https://upload.wikimedia.org/wikipedia/en/7/71/Quebec_citadelles_200x200.png"),
+                        .create(this.getClass().getClassLoader().getResource("scape_logo.png").toString()),
                         Arrays.asList(bs))));
         HttpPost post = UTIL.createPostEntity(entity);
         HttpResponse resp = CLIENT.execute(post);
@@ -292,7 +293,11 @@ public class ConnectorAPIMockTest {
         assertTrue(resp.getStatusLine().getStatusCode() == 200);
         BitStream fetched = ScapeMarshaller.newInstance().deserialize(BitStream.class, resp.getEntity().getContent());
         get.releaseConnection();
-        assertEquals(entity.getRepresentations().get(0).getFiles().get(0).getBitStreams().get(0), fetched);
+        BitStream orig = entity.getRepresentations().get(0).getFiles().get(0).getBitStreams().get(0); 
+        assertEquals(orig.getIdentifier().getValue(), fetched.getIdentifier().getValue());
+        assertEquals(orig.getTitle(), fetched.getTitle());
+        assertEquals(orig.getTechnical(), fetched.getTechnical());
+        assertEquals(orig.getType(), fetched.getType());
     }
 
     @Test
