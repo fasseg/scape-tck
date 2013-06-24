@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +34,7 @@ import eu.scapeproject.model.IntellectualEntity;
 import eu.scapeproject.model.LifecycleState;
 import eu.scapeproject.model.LifecycleState.State;
 import eu.scapeproject.model.Representation;
+import eu.scapeproject.model.VersionList;
 import eu.scapeproject.util.ONBConverter;
 import eu.scapeproject.util.ScapeMarshaller;
 import gov.loc.marc21.slim.RecordType;
@@ -400,13 +402,12 @@ public class MockContainer implements Container {
     }
 
     private void handleRetrieveVersionList(Request req, Response resp) throws Exception {
-        // String id = req.getPath().getPath().substring(21);
-        // List<String> versions = storage.getVersionList(id);
-        // Collections.sort(versions);
-        // VersionList versionList = new VersionList(id, versions);
-        // marshaller.getJaxbMarshaller().marshal(versionList,
-        // resp.getOutputStream());
-        // resp.setCode(200);
+         String id = req.getPath().getPath().substring(21);
+         List<String> versions = storage.getVersionList(id);
+         Collections.sort(versions);
+         VersionList versionList = new VersionList(id, versions);
+         marshaller.getJaxbMarshaller().marshal(versionList, resp.getOutputStream());
+         resp.setCode(200);
     }
 
     private void handleUpdateEntity(Request req, Response resp) throws Exception {
